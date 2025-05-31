@@ -1,4 +1,8 @@
 import tkinter as tk
+from tkinter import ttk
+import tkinter.messagebox as messagebox 
+
+lista_trabajadores_registrados = []
 
 contadorun = 0
 contadordo = 0
@@ -21,6 +25,8 @@ class ManejadorVacaciones:
         if contadorun >= 3:
             if boton_vacu:
                 boton_vacu.config(state=tk.DISABLED)
+                messagebox.showinfo("Límite Alcanzado", "El período Enero-Febrero ha alcanzado el límite de 3 solicitudes.")
+
 
     def vacaciones_dos(self):
         global contadordo, boton_vacd
@@ -28,6 +34,8 @@ class ManejadorVacaciones:
         if contadordo >= 3:
             if boton_vacd:
                 boton_vacd.config(state=tk.DISABLED)
+                messagebox.showinfo("Límite Alcanzado", "El período Marzo-Abril ha alcanzado el límite de 3 solicitudes.")
+
 
     def vacaciones_tres(self):
         global contadortr, boton_vact
@@ -35,6 +43,8 @@ class ManejadorVacaciones:
         if contadortr >= 3:
             if boton_vact:
                 boton_vact.config(state=tk.DISABLED)
+                messagebox.showinfo("Límite Alcanzado", "El período Junio-Julio ha alcanzado el límite de 3 solicitudes.")
+
 
     def vacaciones_cuatro(self):
         global contadorcu, boton_vacc
@@ -42,6 +52,8 @@ class ManejadorVacaciones:
         if contadorcu >= 3:
             if boton_vacc:
                 boton_vacc.config(state=tk.DISABLED)
+                messagebox.showinfo("Límite Alcanzado", "El período Noviembre-Diciembre ha alcanzado el límite de 3 solicitudes.")
+
 
     def abrir_ventana_vacaciones(self):
         global boton_vacu, boton_vacd, boton_vact, boton_vacc
@@ -82,12 +94,45 @@ class ManejadorVacaciones:
 
         self.ventana_vacaciones.protocol("WM_DELETE_WINDOW", volver_a_principal)
 
+class Trabajador:
+    def __init__(self, nombre, edad, genero, curp, nss):
+        self.nombre = nombre
+        self.edad = edad
+        self.genero = genero
+        self.curp = curp
+        self.nss = nss
+
+    def obtener_texto_para_lista(self):
+        return f"{self.nombre} (NSS: {self.nss})"
+
 def pasar_asistencia():
     ventana_menu.withdraw()
 
     ventana_asistencia = tk.Toplevel(ventana_menu)
     ventana_asistencia.title("Pasar Asistencia")
-    ventana_asistencia.geometry("400x550")
+    ventana_asistencia.geometry("400x300")
+
+    tk.Label(ventana_asistencia, text="Seleccione un trabajador para pasar asistencia:", font=("Arial", 12)).pack(pady=10)
+
+    nombres_para_combobox = [t.obtener_texto_para_lista() for t in lista_trabajadores_registrados]
+
+    if not nombres_para_combobox:
+        nombres_para_combobox = ["No hay trabajadores registrados aún"]
+
+    combo = ttk.Combobox(ventana_asistencia, values=nombres_para_combobox, state="readonly")
+    combo.pack(pady=5)
+    if nombres_para_combobox:
+        combo.current(0)
+
+    def registrar_asistencia_seleccionada():
+        seleccion = combo.get()
+        if seleccion == "No hay trabajadores registrados aún" or not seleccion:
+            messagebox.showwarning("Error", "Por favor, registre trabajadores primero o seleccione uno válido.")
+        else:
+            messagebox.showinfo("Asistencia Registrada", f"Asistencia registrada para: {seleccion}")
+
+    btn_registrar = tk.Button(ventana_asistencia, text="Registrar Asistencia", command=registrar_asistencia_seleccionada)
+    btn_registrar.pack(pady=15)
 
     def volver_desde_asistencia():
          ventana_asistencia.destroy()
@@ -108,18 +153,6 @@ def agregar_trabajador_ven():
     mensaje_registro_label = tk.Label(ventana_menudos, text="", fg="green")
     mensaje_registro_label.pack(pady=5)
 
-
-    class Registro:
-        def __init__(self, nombre, edad, genero, curp, nss):
-            self.nombre = nombre
-            self.edad = edad
-            self.genero = genero
-            self.curp = curp
-            self.nss = nss
-
-        def obtener_texto_registro(self):
-            return f"'{self.nombre}' registrado con el NSS: {self.nss}"
-
     def registrar_trabajador():
         nombre = entry_nombre.get()
         edad = entry_edad.get()
@@ -127,11 +160,16 @@ def agregar_trabajador_ven():
         curp = entry_curp.get()
         nss = entry_nss.get()
 
-        nuevo_trabajador = Registro(nombre, edad, genero, curp, nss)
+        if not all([nombre, edad, genero, curp, nss]):
+            messagebox.showerror("Error de Registro", "Todos los campos son obligatorios.")
+            return
 
-        mensaje_registro_label.config(text=nuevo_trabajador.obtener_texto_registro())
+        nuevo_trabajador = Trabajador(nombre, edad, genero, curp, nss)
+        lista_trabajadores_registrados.append(nuevo_trabajador)
 
-        # Limpia los campos de entrada
+        mensaje_registro_label.config(text=f"'{nuevo_trabajador.nombre}' registrado con el NSS: {nuevo_trabajador.nss}")
+        messagebox.showinfo("Registro Exitoso", f"¡'{nuevo_trabajador.nombre}' ha sido registrado!")
+
         entry_nombre.delete(0, tk.END)
         entry_edad.delete(0, tk.END)
         entry_genero.delete(0, tk.END)
