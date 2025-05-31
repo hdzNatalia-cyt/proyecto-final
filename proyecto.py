@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-import tkinter.messagebox as messagebox 
+import tkinter.messagebox as messagebox
 
 lista_trabajadores_registrados = []
 
@@ -9,90 +9,11 @@ contadordo = 0
 contadortr = 0
 contadorcu = 0
 
+
 boton_vacu = None
 boton_vacd = None
 boton_vact = None
 boton_vacc = None
-
-class ManejadorVacaciones:
-    def __init__(self, ventana_principal):
-        self.ventana_principal = ventana_principal
-        self.ventana_vacaciones = None
-
-    def vacaciones_uno(self):
-        global contadorun, boton_vacu
-        contadorun += 1
-        if contadorun >= 3:
-            if boton_vacu:
-                boton_vacu.config(state=tk.DISABLED)
-                messagebox.showinfo("Límite Alcanzado", "El período Enero-Febrero ha alcanzado el límite de 3 solicitudes.")
-
-
-    def vacaciones_dos(self):
-        global contadordo, boton_vacd
-        contadordo += 1
-        if contadordo >= 3:
-            if boton_vacd:
-                boton_vacd.config(state=tk.DISABLED)
-                messagebox.showinfo("Límite Alcanzado", "El período Marzo-Abril ha alcanzado el límite de 3 solicitudes.")
-
-
-    def vacaciones_tres(self):
-        global contadortr, boton_vact
-        contadortr += 1
-        if contadortr >= 3:
-            if boton_vact:
-                boton_vact.config(state=tk.DISABLED)
-                messagebox.showinfo("Límite Alcanzado", "El período Junio-Julio ha alcanzado el límite de 3 solicitudes.")
-
-
-    def vacaciones_cuatro(self):
-        global contadorcu, boton_vacc
-        contadorcu += 1
-        if contadorcu >= 3:
-            if boton_vacc:
-                boton_vacc.config(state=tk.DISABLED)
-                messagebox.showinfo("Límite Alcanzado", "El período Noviembre-Diciembre ha alcanzado el límite de 3 solicitudes.")
-
-
-    def abrir_ventana_vacaciones(self):
-        global boton_vacu, boton_vacd, boton_vact, boton_vacc
-
-        self.ventana_principal.withdraw()
-
-        self.ventana_vacaciones = tk.Toplevel(self.ventana_principal)
-        self.ventana_vacaciones.title("Vacaciones Disponibles")
-        self.ventana_vacaciones.geometry("400x400")
-
-        tk.Label(self.ventana_vacaciones, text="Fechas de Vacaciones", font=("Arial", 14)).pack(pady=10)
-
-        boton_vacu = tk.Button(self.ventana_vacaciones, text="Enero-Febrero", command=self.vacaciones_uno)
-        boton_vacu.pack(pady=5)
-        if contadorun >= 3:
-            boton_vacu.config(state=tk.DISABLED)
-
-        boton_vacd = tk.Button(self.ventana_vacaciones, text="Marzo-Abril", command=self.vacaciones_dos)
-        boton_vacd.pack(pady=5)
-        if contadordo >= 3:
-            boton_vacd.config(state=tk.DISABLED)
-
-        boton_vact = tk.Button(self.ventana_vacaciones, text="Junio-Julio", command=self.vacaciones_tres)
-        boton_vact.pack(pady=5)
-        if contadortr >= 3:
-            boton_vact.config(state=tk.DISABLED)
-
-        boton_vacc = tk.Button(self.ventana_vacaciones, text="Nov-Dic", command=self.vacaciones_cuatro)
-        boton_vacc.pack(pady=5)
-        if contadorcu >= 3:
-            boton_vacc.config(state=tk.DISABLED)
-
-        def volver_a_principal():
-            self.ventana_vacaciones.destroy()
-            self.ventana_principal.deiconify()
-
-        tk.Button(self.ventana_vacaciones, text="Volver al Menú Principal", command=volver_a_principal).pack(pady=20)
-
-        self.ventana_vacaciones.protocol("WM_DELETE_WINDOW", volver_a_principal)
 
 class Trabajador:
     def __init__(self, nombre, edad, genero, curp, nss):
@@ -101,9 +22,181 @@ class Trabajador:
         self.genero = genero
         self.curp = curp
         self.nss = nss
+        self.vacaciones_solicitadas_individual = {
+            "Enero-Febrero": 0,
+            "Marzo-Abril": 0,
+            "Junio-Julio": 0,
+            "Nov-Dic": 0,
+        }
 
     def obtener_texto_para_lista(self):
         return f"{self.nombre} (NSS: {self.nss})"
+
+    def obtener_conteo_vacaciones_individual(self, periodo):
+        return self.vacaciones_solicitadas_individual.get(periodo, 0)
+
+    def registrar_vacaciones_individual(self, periodo):
+        if self.vacaciones_solicitadas_individual.get(periodo, 0) < 3:
+            self.vacaciones_solicitadas_individual[periodo] += 1
+            return True
+        return False
+
+class ManejadorVacaciones:
+    def __init__(self, ventana_principal):
+        self.ventana_principal = ventana_principal
+        self.ventana_vacaciones = None
+        self.combobox_trabajadores = None
+
+    def vacaciones_uno(self):
+        global contadorun, boton_vacu
+        contadorun += 1
+        if contadorun >= 3:
+            if boton_vacu:
+                boton_vacu.config(state=tk.DISABLED)
+                messagebox.showinfo("Límite Alcanzado", "El período Enero-Febrero ha alcanzado el límite de solicitudes")
+
+    def vacaciones_dos(self):
+        global contadordo, boton_vacd
+        contadordo += 1
+        if contadordo >= 3:
+            if boton_vacd:
+                boton_vacd.config(state=tk.DISABLED)
+                messagebox.showinfo("Límite Alcanzado", "El período Marzo-Abril ha alcanzado el límite de solicitudes.")
+
+    def vacaciones_tres(self):
+        global contadortr, boton_vact
+        contadortr += 1
+        if contadortr >= 3:
+            if boton_vact:
+                boton_vact.config(state=tk.DISABLED)
+                messagebox.showinfo("Límite Alcanzado", "El período Junio-Julio ha alcanzado el límite de  solicitudes ")
+
+    def vacaciones_cuatro(self):
+        global contadorcu, boton_vacc
+        contadorcu += 1
+        if contadorcu >= 3:
+            if boton_vacc:
+                boton_vacc.config(state=tk.DISABLED)
+                messagebox.showinfo("Límite Alcanzado", "El período Nov-Dic ha alcanzado el límite de solicitudes ")
+
+    def _obtener_contador_global(self, periodo):
+        global contadorun, contadordo, contadortr, contadorcu
+        if periodo == "Enero-Febrero":
+            return contadorun
+        elif periodo == "Marzo-Abril":
+            return contadordo
+        elif periodo == "Junio-Julio":
+            return contadortr
+        elif periodo == "Nov-Dic":
+            return contadorcu
+        return 0
+
+    def _actualizar_estado_botones_vacaciones(self):
+        indice_seleccionado = self.combobox_trabajadores.current()
+        trabajador_seleccionado = None
+        if indice_seleccionado != -1 and lista_trabajadores_registrados and \
+           (nombres_para_combobox_vacaciones[0] != "No hay trabajadores registrados aún"):
+            trabajador_seleccionado = lista_trabajadores_registrados[indice_seleccionado]
+
+        periodos_orden = ["Enero-Febrero", "Marzo-Abril", "Junio-Julio", "Nov-Dic"]
+        global_buttons = [boton_vacu, boton_vacd, boton_vact, boton_vacc]
+
+        for i, periodo in enumerate(periodos_orden):
+            btn = global_buttons[i]
+            if btn is None:
+                continue
+
+            contador_global_actual = self._obtener_contador_global(periodo)
+            limite_global_alcanzado = (contador_global_actual >= 3)
+
+            limite_individual_alcanzado = False
+            if trabajador_seleccionado:
+                limite_individual_alcanzado = (trabajador_seleccionado.obtener_conteo_vacaciones_individual(periodo) >= 3)
+
+            if not trabajador_seleccionado or limite_global_alcanzado or limite_individual_alcanzado:
+                btn.config(state=tk.DISABLED)
+            else:
+                btn.config(state=tk.NORMAL) # Si todo está bien, habilitar el botón
+
+    def _accion_combinada_vacacion(self, periodo, tu_funcion_original):
+        indice_seleccionado = self.combobox_trabajadores.current()
+
+        if indice_seleccionado == -1 or not lista_trabajadores_registrados or \
+           nombres_para_combobox_vacaciones[0] == "No hay trabajadores registrados aún":
+            messagebox.showwarning("Error", "Por favor, seleccione un trabajador primero.")
+            return
+
+        trabajador_seleccionado = lista_trabajadores_registrados[indice_seleccionado]
+
+        tu_funcion_original()
+
+        if self._obtener_contador_global(periodo) >= 3:
+            self._actualizar_estado_botones_vacaciones()
+            return
+
+        if trabajador_seleccionado.registrar_vacaciones_individual(periodo):
+            messagebox.showinfo("Vacaciones Registradas",
+                               f"Vacaciones para '{trabajador_seleccionado.nombre}' registradas en '{periodo}'.\n"
+                               f"Este trabajador lleva {trabajador_seleccionado.obtener_conteo_vacaciones_individual(periodo)} solicitud\n")
+        else:
+            messagebox.showwarning("Límite Individual Alcanzado",
+                                   f"'{trabajador_seleccionado.nombre}' ya ha alcanzado su límite de 3 solicitudes para el período '{periodo}'.")
+
+        self._actualizar_estado_botones_vacaciones()
+
+
+    def abrir_ventana_vacaciones(self):
+        global boton_vacu, boton_vacd, boton_vact, boton_vacc
+        global nombres_para_combobox_vacaciones
+        self.ventana_principal.withdraw()
+
+        self.ventana_vacaciones = tk.Toplevel(self.ventana_principal)
+        self.ventana_vacaciones.title("Vacaciones Disponibles")
+        self.ventana_vacaciones.geometry("400x500") # Un poco más grande para el ComboBox
+
+        tk.Label(self.ventana_vacaciones, text="Fechas de Vacaciones", font=("Arial", 14)).pack(pady=10)
+
+        tk.Label(self.ventana_vacaciones, text="Seleccione un trabajador:").pack(pady=5)
+        nombres_para_combobox_vacaciones = [t.obtener_texto_para_lista() for t in lista_trabajadores_registrados]
+        if not nombres_para_combobox_vacaciones:
+            nombres_para_combobox_vacaciones = ["No hay trabajadores registrados aún"]
+
+        self.combobox_trabajadores = ttk.Combobox(self.ventana_vacaciones,
+                                                   values=nombres_para_combobox_vacaciones,
+                                                   state="readonly") # El usuario solo puede seleccionar, no escribir
+        self.combobox_trabajadores.pack(pady=5)
+
+        # Si hay trabajadores, selecciona el primero por defecto
+        if nombres_para_combobox_vacaciones and nombres_para_combobox_vacaciones[0] != "No hay trabajadores registrados aún":
+            self.combobox_trabajadores.current(0)
+
+        # MUY IMPORTANTE: Cuando se selecciona un nuevo trabajador, actualizamos los botones
+        self.combobox_trabajadores.bind("<<ComboboxSelected>>", lambda event: self._actualizar_estado_botones_vacaciones())
+
+        tk.Label(self.ventana_vacaciones, text="Períodos de Vacaciones:", font=("Arial", 12)).pack(pady=10)
+
+        # --- TUS BOTONES ORIGINALES (ahora llaman a la nueva función combinada) ---
+        boton_vacu = tk.Button(self.ventana_vacaciones, text="Enero-Febrero", command=lambda: self._accion_combinada_vacacion("Enero-Febrero", self.vacaciones_uno))
+        boton_vacu.pack(pady=5)
+
+        boton_vacd = tk.Button(self.ventana_vacaciones, text="Marzo-Abril", command=lambda: self._accion_combinada_vacacion("Marzo-Abril", self.vacaciones_dos))
+        boton_vacd.pack(pady=5)
+
+        boton_vact = tk.Button(self.ventana_vacaciones, text="Junio-Julio", command=lambda: self._accion_combinada_vacacion("Junio-Julio", self.vacaciones_tres))
+        boton_vact.pack(pady=5)
+
+        boton_vacc = tk.Button(self.ventana_vacaciones, text="Nov-Dic", command=lambda: self._accion_combinada_vacacion("Nov-Dic", self.vacaciones_cuatro))
+        boton_vacc.pack(pady=5)
+
+        # Llama a esta función para que los botones se habiliten/deshabiliten correctamente al abrir la ventana
+        self._actualizar_estado_botones_vacaciones()
+
+        def volver_a_principal():
+            self.ventana_vacaciones.destroy()
+            self.ventana_principal.deiconify() # Muestra la ventana principal de nuevo
+
+        tk.Button(self.ventana_vacaciones, text="Volver al Menú Principal", command=volver_a_principal).pack(pady=20)
+        self.ventana_vacaciones.protocol("WM_DELETE_WINDOW", volver_a_principal)
 
 def pasar_asistencia():
     ventana_menu.withdraw()
@@ -114,14 +207,13 @@ def pasar_asistencia():
 
     tk.Label(ventana_asistencia, text="Seleccione un trabajador para pasar asistencia:", font=("Arial", 12)).pack(pady=10)
 
-    nombres_para_combobox = [t.obtener_texto_para_lista() for t in lista_trabajadores_registrados]
+    nombres_para_combobox_asis = [t.obtener_texto_para_lista() for t in lista_trabajadores_registrados]
+    if not nombres_para_combobox_asis:
+        nombres_para_combobox_asis = ["No hay trabajadores registrados aún"]
 
-    if not nombres_para_combobox:
-        nombres_para_combobox = ["No hay trabajadores registrados aún"]
-
-    combo = ttk.Combobox(ventana_asistencia, values=nombres_para_combobox, state="readonly")
+    combo = ttk.Combobox(ventana_asistencia, values=nombres_para_combobox_asis, state="readonly")
     combo.pack(pady=5)
-    if nombres_para_combobox:
+    if nombres_para_combobox_asis and nombres_para_combobox_asis[0] != "No hay trabajadores registrados aún":
         combo.current(0)
 
     def registrar_asistencia_seleccionada():
