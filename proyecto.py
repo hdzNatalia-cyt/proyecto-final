@@ -9,7 +9,6 @@ contadordo = 0
 contadortr = 0
 contadorcu = 0
 
-
 boton_vacu = None
 boton_vacd = None
 boton_vact = None
@@ -55,7 +54,7 @@ class ManejadorVacaciones:
         if contadorun >= 3:
             if boton_vacu:
                 boton_vacu.config(state=tk.DISABLED)
-                messagebox.showinfo("Límite Alcanzado", "El período Enero-Febrero ha alcanzado el límite de solicitudes ")
+                messagebox.showinfo("Límite Alcanzado", "El período Enero-Febrero ha alcanzado el límite de solicitudes")
 
     def vacaciones_dos(self):
         global contadordo, boton_vacd
@@ -63,7 +62,7 @@ class ManejadorVacaciones:
         if contadordo >= 3:
             if boton_vacd:
                 boton_vacd.config(state=tk.DISABLED)
-                messagebox.showinfo("Límite Alcanzado", "El período Marzo-Abril ha alcanzado el límite de solicitudes ")
+                messagebox.showinfo("Límite Alcanzado", "El período Marzo-Abril ha alcanzado el límite de solicitudes")
 
     def vacaciones_tres(self):
         global contadortr, boton_vact
@@ -79,7 +78,7 @@ class ManejadorVacaciones:
         if contadorcu >= 3:
             if boton_vacc:
                 boton_vacc.config(state=tk.DISABLED)
-                messagebox.showinfo("Límite Alcanzado", "El período Nov-Dic ha alcanzado el límite de  solicitudes ")
+                messagebox.showinfo("Límite Alcanzado", "El período Nov-Dic ha alcanzado el límite de solicitudes")
 
     def _obtener_contador_global(self, periodo):
         global contadorun, contadordo, contadortr, contadorcu
@@ -144,13 +143,12 @@ class ManejadorVacaciones:
             historial_actividades.append(mensaje_historial_simple)
             messagebox.showinfo("Vacaciones Registradas",
                                f"Vacaciones para '{trabajador_seleccionado.nombre}' registradas en '{periodo}'.\n"
-                               f"Este trabajador lleva {trabajador_seleccionado.obtener_conteo_vacaciones_individual(periodo)} solicitudes \n")
+                               f"Este trabajador lleva {trabajador_seleccionado.obtener_conteo_vacaciones_individual(periodo)} solicitudes\n")
         else:
             messagebox.showwarning("Límite Individual Alcanzado",
                                    f"'{trabajador_seleccionado.nombre}' ya ha alcanzado su límite de solicitudes")
 
         self._actualizar_estado_botones_vacaciones()
-
 
     def abrir_ventana_vacaciones(self):
         global boton_vacu, boton_vacd, boton_vact, boton_vacc
@@ -202,44 +200,51 @@ class ManejadorVacaciones:
         tk.Button(self.ventana_vacaciones, text="Volver al Menú Principal", command=volver_a_principal).pack(pady=20)
         self.ventana_vacaciones.protocol("WM_DELETE_WINDOW", volver_a_principal)
 
-def pasar_asistencia():
-    ventana_menu.withdraw()
+class ManejadorAsistencia:
+    def __init__(self, ventana_principal):
+        self.ventana_principal = ventana_principal
+        self.ventana_asistencia = None
+        self.combobox_asistencia = None
 
-    ventana_asistencia = tk.Toplevel(ventana_menu)
-    ventana_asistencia.title("Pasar Asistencia")
-    ventana_asistencia.geometry("400x300")
+    def abrir_ventana_asistencia(self):
+        self.ventana_principal.withdraw()
 
-    tk.Label(ventana_asistencia, text="Seleccione un trabajador para pasar asistencia:", font=("Arial", 12)).pack(pady=10)
+        self.ventana_asistencia = tk.Toplevel(self.ventana_principal)
+        self.ventana_asistencia.title("Pasar Asistencia")
+        self.ventana_asistencia.geometry("400x300")
 
-    nombres_para_combobox_asis = [t.obtener_texto_para_lista() for t in lista_trabajadores_registrados]
-    if not nombres_para_combobox_asis:
-        nombres_para_combobox_asis = ["No hay trabajadores registrados aún"]
+        tk.Label(self.ventana_asistencia, text="Seleccione un trabajador para pasar asistencia:", font=("Arial", 12)).pack(pady=10)
 
-    combo = ttk.Combobox(ventana_asistencia, values=nombres_para_combobox_asis, state="readonly")
-    combo.pack(pady=5)
-    if nombres_para_combobox_asis and nombres_para_combobox_asis[0] != "No hay trabajadores registrados aún":
-        combo.current(0)
+        nombres_para_combobox_asis = [t.obtener_texto_para_lista() for t in lista_trabajadores_registrados]
+        if not nombres_para_combobox_asis:
+            nombres_para_combobox_asis = ["No hay trabajadores registrados aún"]
 
-    def registrar_asistencia_seleccionada():
-        seleccion = combo.get()
-        if seleccion == "No hay trabajadores registrados aún" or not seleccion:
-            messagebox.showwarning("Error", "Por favor, registre trabajadores primero o seleccione uno válido.")
-        else:
-            mensaje_historial_simple = f"Asistencia registrada para: {seleccion}"
-            historial_actividades.append(mensaje_historial_simple)
-            messagebox.showinfo("Asistencia Registrada", mensaje_historial_simple)
+        self.combobox_asistencia = ttk.Combobox(self.ventana_asistencia, values=nombres_para_combobox_asis, state="readonly")
+        self.combobox_asistencia.pack(pady=5)
+        if nombres_para_combobox_asis and nombres_para_combobox_asis[0] != "No hay trabajadores registrados aún":
+            self.combobox_asistencia.current(0)
 
-    btn_registrar = tk.Button(ventana_asistencia, text="Registrar Asistencia", command=registrar_asistencia_seleccionada)
-    btn_registrar.pack(pady=15)
+        def registrar_asistencia_seleccionada():
+            seleccion = self.combobox_asistencia.get()
+            if seleccion == "No hay trabajadores registrados aún" or not seleccion:
+                messagebox.showwarning("Error", "Por favor, registre trabajadores primero o seleccione uno válido.")
+            else:
+                mensaje_historial_simple = f"Asistencia registrada para: {seleccion}"
+                historial_actividades.append(mensaje_historial_simple)
+                messagebox.showinfo("Asistencia Registrada", mensaje_historial_simple)
 
-    def volver_desde_asistencia():
-         ventana_asistencia.destroy()
-         ventana_menu.deiconify()
+        btn_registrar = tk.Button(self.ventana_asistencia, text="Registrar Asistencia", command=registrar_asistencia_seleccionada)
+        btn_registrar.pack(pady=15)
 
-    btn_volver = tk.Button(ventana_asistencia, text="Volver al Menú Principal", command=volver_desde_asistencia)
-    btn_volver.pack(pady=10)
+        def volver_desde_asistencia():
+             self.ventana_asistencia.destroy()
+             self.ventana_principal.deiconify()
 
-    ventana_asistencia.protocol("WM_DELETE_WINDOW", volver_desde_asistencia)
+        btn_volver = tk.Button(self.ventana_asistencia, text="Volver al Menú Principal", command=volver_desde_asistencia)
+        btn_volver.pack(pady=10)
+
+        self.ventana_asistencia.protocol("WM_DELETE_WINDOW", volver_desde_asistencia)
+
 
 def agregar_trabajador_ven():
     ventana_menu.withdraw()
@@ -349,7 +354,8 @@ tk.Label(ventana_menu, text="Bienvenido, escoja qué desea realizar").pack(pady=
 boton_opc1re = tk.Button(ventana_menu, text="Agregar nuevo trabajador", command=agregar_trabajador_ven)
 boton_opc1re.pack(pady=10)
 
-boton_asis = tk.Button(ventana_menu, text="Pasar asistencia a trabajador", command=pasar_asistencia)
+manejador_asistencia_instancia = ManejadorAsistencia(ventana_menu)
+boton_asis = tk.Button(ventana_menu, text="Pasar asistencia a trabajador", command=manejador_asistencia_instancia.abrir_ventana_asistencia)
 boton_asis.pack(pady=10)
 
 manejador_vacaciones_instancia = ManejadorVacaciones(ventana_menu)
