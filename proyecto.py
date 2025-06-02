@@ -9,6 +9,7 @@ contadordo = 0
 contadortr = 0
 contadorcu = 0
 
+
 boton_vacu = None
 boton_vacd = None
 boton_vact = None
@@ -17,12 +18,13 @@ boton_vacc = None
 historial_actividades = []
 
 class Trabajador:
-    def __init__(self, nombre, edad, genero, curp, nss):
+    def __init__(self, nombre, edad, genero, curp, nss, horario):
         self.nombre = nombre
         self.edad = edad
         self.genero = genero
         self.curp = curp
         self.nss = nss
+        self.horario = horario
         self.vacaciones_solicitadas_individual = {
             "Enero-Febrero": 0,
             "Marzo-Abril": 0,
@@ -54,7 +56,7 @@ class ManejadorVacaciones:
         if contadorun >= 3:
             if boton_vacu:
                 boton_vacu.config(state=tk.DISABLED)
-                messagebox.showinfo("Límite Alcanzado", "El período Enero-Febrero ha alcanzado el límite de solicitudes")
+                messagebox.showinfo("Límite Alcanzado", "El período Enero-Febrero ha alcanzado el límite de solicitudes ")
 
     def vacaciones_dos(self):
         global contadordo, boton_vacd
@@ -70,7 +72,7 @@ class ManejadorVacaciones:
         if contadortr >= 3:
             if boton_vact:
                 boton_vact.config(state=tk.DISABLED)
-                messagebox.showinfo("Límite Alcanzado", "El período Junio-Julio ha alcanzado el límite de solicitudes")
+                messagebox.showinfo("Límite Alcanzado", "El período Junio-Julio ha alcanzado el límite de solicitudes ")
 
     def vacaciones_cuatro(self):
         global contadorcu, boton_vacc
@@ -141,12 +143,9 @@ class ManejadorVacaciones:
         if trabajador_seleccionado.registrar_vacaciones_individual(periodo):
             mensaje_historial_simple = f"Vacación de {periodo} registrada para {trabajador_seleccionado.nombre}."
             historial_actividades.append(mensaje_historial_simple)
-            messagebox.showinfo("Vacaciones Registradas",
-                               f"Vacaciones para '{trabajador_seleccionado.nombre}' registradas en '{periodo}'.\n"
-                               f"Este trabajador lleva {trabajador_seleccionado.obtener_conteo_vacaciones_individual(periodo)} solicitudes\n")
+            messagebox.showinfo("Vacaciones Registradas", f"Vacaciones para '{trabajador_seleccionado.nombre}' registradas en '{periodo}'.\n")
         else:
-            messagebox.showwarning("Límite Individual Alcanzado",
-                                   f"'{trabajador_seleccionado.nombre}' ya ha alcanzado su límite de solicitudes")
+            messagebox.showwarning("Límite Individual Alcanzado",f"'{trabajador_seleccionado.nombre}' ya ha alcanzado su límite de 3 solicitudes para el período '{periodo}'.")
 
         self._actualizar_estado_botones_vacaciones()
 
@@ -167,9 +166,7 @@ class ManejadorVacaciones:
         if not nombres_para_combobox_vacaciones:
             nombres_para_combobox_vacaciones = ["No hay trabajadores registrados aún"]
 
-        self.combobox_trabajadores = ttk.Combobox(self.ventana_vacaciones,
-                                                   values=nombres_para_combobox_vacaciones,
-                                                   state="readonly")
+        self.combobox_trabajadores = ttk.Combobox(self.ventana_vacaciones,values=nombres_para_combobox_vacaciones,state="readonly")
         self.combobox_trabajadores.pack(pady=5)
 
         if nombres_para_combobox_vacaciones and nombres_para_combobox_vacaciones[0] != "No hay trabajadores registrados aún":
@@ -205,43 +202,79 @@ class ManejadorAsistencia:
         self.ventana_principal = ventana_principal
         self.ventana_asistencia = None
         self.combobox_asistencia = None
+        self.label_trabajadores_listado = None
+
+    def _actualizar_combobox_para_turno(self, turno):
+        nombres_trabajadores_turno = []
+        for trabajador in lista_trabajadores_registrados:
+            if trabajador.horario == turno:
+                nombres_trabajadores_turno.append(trabajador.obtener_texto_para_lista())
+
+        self.combobox_asistencia['values'] = nombres_trabajadores_turno
+
+        if nombres_trabajadores_turno:
+            self.combobox_asistencia.set("Seleccione un trabajador...")
+            self.combobox_asistencia.config(state="readonly")
+            self.label_trabajadores_listado.config(text=f"Trabajadores en Turno {turno}:")
+        else:
+            self.combobox_asistencia.set("No hay trabajadores en este turno")
+            self.combobox_asistencia.config(state="disabled")
+            self.label_trabajadores_listado.config(text=f"No hay trabajadores en Turno {turno}")
+
 
     def abrir_ventana_asistencia(self):
         self.ventana_principal.withdraw()
 
         self.ventana_asistencia = tk.Toplevel(self.ventana_principal)
         self.ventana_asistencia.title("Pasar Asistencia")
-        self.ventana_asistencia.geometry("400x300")
+        self.ventana_asistencia.geometry("450x380")
 
-        tk.Label(self.ventana_asistencia, text="Seleccione un trabajador para pasar asistencia:", font=("Arial", 12)).pack(pady=10)
+        tk.Label(self.ventana_asistencia, text="1. Seleccione el Turno:", font=("Arial", 12)).pack(pady=10)
 
-        nombres_para_combobox_asis = [t.obtener_texto_para_lista() for t in lista_trabajadores_registrados]
-        if not nombres_para_combobox_asis:
-            nombres_para_combobox_asis = ["No hay trabajadores registrados aún"]
 
-        self.combobox_asistencia = ttk.Combobox(self.ventana_asistencia, values=nombres_para_combobox_asis, state="readonly")
+        frame_turnos = tk.Frame(self.ventana_asistencia)
+        frame_turnos.pack(pady=5)
+
+        tk.Button(frame_turnos, text="Turno Matutino", command=lambda: self._actualizar_combobox_para_turno("Matutino")).pack(side=tk.LEFT, padx=5)
+        tk.Button(frame_turnos, text="Turno Vespertino", command=lambda: self._actualizar_combobox_para_turno("Vespertino")).pack(side=tk.LEFT, padx=5)
+        tk.Button(frame_turnos, text="Turno Nocturno", command=lambda: self._actualizar_combobox_para_turno("Nocturno")).pack(side=tk.LEFT, padx=5)
+
+        tk.Label(self.ventana_asistencia, text="2. Seleccione un trabajador:", font=("Arial", 12)).pack(pady=10)
+
+        self.label_trabajadores_listado = tk.Label(self.ventana_asistencia, text="Seleccione un turno primero", font=("Arial", 10))
+        self.label_trabajadores_listado.pack(pady=5)
+        self.combobox_asistencia = ttk.Combobox(self.ventana_asistencia, values=[], state="disabled", width=45)
+        self.combobox_asistencia.set("Esperando selección de turno...") # Texto por defecto
         self.combobox_asistencia.pack(pady=5)
-        if nombres_para_combobox_asis and nombres_para_combobox_asis[0] != "No hay trabajadores registrados aún":
-            self.combobox_asistencia.current(0)
+
 
         def registrar_asistencia_seleccionada():
-            seleccion = self.combobox_asistencia.get()
-            if seleccion == "No hay trabajadores registrados aún" or not seleccion:
-                messagebox.showwarning("Error", "Por favor, registre trabajadores primero o seleccione uno válido.")
-            else:
-                mensaje_historial_simple = f"Asistencia registrada para: {seleccion}"
+            seleccion_combobox = self.combobox_asistencia.get()
+            if self.combobox_asistencia['state'] == 'disabled' or seleccion_combobox == "Esperando selección de turno..." or seleccion_combobox == "No hay trabajadores en este turno" or not seleccion_combobox:
+                messagebox.showwarning("Error", "Por favor, seleccione un turno y luego un trabajador válido.")
+                return
+
+            trabajador_obj = None
+            for t in lista_trabajadores_registrados:
+                if t.obtener_texto_para_lista() == seleccion_combobox:
+                    trabajador_obj = t
+                    break
+
+            if trabajador_obj:
+                mensaje_historial_simple = f"Asistencia registrada para: {trabajador_obj.nombre} (Horario: {trabajador_obj.horario})"
                 historial_actividades.append(mensaje_historial_simple)
                 messagebox.showinfo("Asistencia Registrada", mensaje_historial_simple)
+            else:
+                messagebox.showerror("Error", "No se pudo encontrar el trabajador seleccionado.")
 
-        btn_registrar = tk.Button(self.ventana_asistencia, text="Registrar Asistencia", command=registrar_asistencia_seleccionada)
-        btn_registrar.pack(pady=15)
+
+        tk.Button(self.ventana_asistencia, text="3. Registrar Asistencia", command=registrar_asistencia_seleccionada).pack(pady=15)
 
         def volver_desde_asistencia():
              self.ventana_asistencia.destroy()
              self.ventana_principal.deiconify()
 
-        btn_volver = tk.Button(self.ventana_asistencia, text="Volver al Menú Principal", command=volver_desde_asistencia)
-        btn_volver.pack(pady=10)
+        tk.Button(self.ventana_asistencia, text="Volver al Menú Principal", command=volver_desde_asistencia).pack(pady=10)
 
         self.ventana_asistencia.protocol("WM_DELETE_WINDOW", volver_desde_asistencia)
 
@@ -251,7 +284,7 @@ def agregar_trabajador_ven():
 
     ventana_menudos = tk.Toplevel(ventana_menu)
     ventana_menudos.title("Nuevo Trabajador")
-    ventana_menudos.geometry("400x550")
+    ventana_menudos.geometry("400x580")
 
     mensaje_registro_label = tk.Label(ventana_menudos, text="", fg="green")
     mensaje_registro_label.pack(pady=5)
@@ -262,15 +295,20 @@ def agregar_trabajador_ven():
         genero = entry_genero.get()
         curp = entry_curp.get()
         nss = entry_nss.get()
+        horario = combo_horario.get()
 
-        if not all([nombre, edad, genero, curp, nss]):
+        if not all([nombre, edad, genero, curp, nss, horario]):
             messagebox.showerror("Error de Registro", "Todos los campos son obligatorios.")
             return
 
-        nuevo_trabajador = Trabajador(nombre, edad, genero, curp, nss)
+        if horario == "Seleccione Horario":
+            messagebox.showwarning("Error de Registro", "Por favor, seleccione un horario para el trabajador.")
+            return
+
+        nuevo_trabajador = Trabajador(nombre, edad, genero, curp, nss, horario)
         lista_trabajadores_registrados.append(nuevo_trabajador)
 
-        mensaje_historial_simple = f"Nuevo trabajador registrado: {nuevo_trabajador.nombre} (NSS: {nuevo_trabajador.nss})"
+        mensaje_historial_simple = f"Nuevo trabajador registrado: {nuevo_trabajador.nombre} (NSS: {nuevo_trabajador.nss}, Horario: {nuevo_trabajador.horario})"
         historial_actividades.append(mensaje_historial_simple)
 
         mensaje_registro_label.config(text=mensaje_historial_simple)
@@ -281,6 +319,7 @@ def agregar_trabajador_ven():
         entry_genero.delete(0, tk.END)
         entry_curp.delete(0, tk.END)
         entry_nss.delete(0, tk.END)
+        combo_horario.set("Seleccione Horario")
 
     tk.Label(ventana_menudos, text="Nombre:").pack(pady=2)
     entry_nombre = tk.Entry(ventana_menudos)
@@ -301,6 +340,12 @@ def agregar_trabajador_ven():
     tk.Label(ventana_menudos, text="NSS:").pack(pady=2)
     entry_nss = tk.Entry(ventana_menudos)
     entry_nss.pack(pady=2)
+
+    tk.Label(ventana_menudos, text="Horario:").pack(pady=2)
+    opciones_horario = ["Matutino", "Vespertino", "Nocturno"]
+    combo_horario = ttk.Combobox(ventana_menudos, values=opciones_horario, state="readonly")
+    combo_horario.set("Seleccione Horario")
+    combo_horario.pack(pady=2)
 
     btn_registrar = tk.Button(ventana_menudos, text="Registrar trabajador", command=registrar_trabajador)
     btn_registrar.pack(pady=15)
