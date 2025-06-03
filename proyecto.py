@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
 import tkinter.messagebox as messagebox
+from datetime import datetime
+
 
 lista_trabajadores_registrados = []
 
@@ -9,13 +11,18 @@ contadordo = 0
 contadortr = 0
 contadorcu = 0
 
-
 boton_vacu = None
 boton_vacd = None
 boton_vact = None
 boton_vacc = None
 
 historial_actividades = []
+
+global_combobox_asistencia = None
+global_label_trabajadores_listado = None
+global_ventana_asistencia = None
+global_entry_hora_entrada = None
+
 
 class Trabajador:
     def __init__(self, nombre, edad, genero, curp, nss, horario):
@@ -44,6 +51,7 @@ class Trabajador:
             return True
         return False
 
+
 class ManejadorVacaciones:
     def __init__(self, ventana_principal):
         self.ventana_principal = ventana_principal
@@ -56,7 +64,7 @@ class ManejadorVacaciones:
         if contadorun >= 3:
             if boton_vacu:
                 boton_vacu.config(state=tk.DISABLED)
-                messagebox.showinfo("Límite Alcanzado", "El período Enero-Febrero ha alcanzado el límite de solicitudes ")
+                messagebox.showinfo("Límite Alcanzado", "El período Enero-Febrero ha alcanzado el límite de solicitudes")
 
     def vacaciones_dos(self):
         global contadordo, boton_vacd
@@ -72,7 +80,7 @@ class ManejadorVacaciones:
         if contadortr >= 3:
             if boton_vact:
                 boton_vact.config(state=tk.DISABLED)
-                messagebox.showinfo("Límite Alcanzado", "El período Junio-Julio ha alcanzado el límite de solicitudes ")
+                messagebox.showinfo("Límite Alcanzado", "El período Junio-Julio ha alcanzado el límite de solicitudes")
 
     def vacaciones_cuatro(self):
         global contadorcu, boton_vacc
@@ -80,7 +88,7 @@ class ManejadorVacaciones:
         if contadorcu >= 3:
             if boton_vacc:
                 boton_vacc.config(state=tk.DISABLED)
-                messagebox.showinfo("Límite Alcanzado", "El período Nov-Dic ha alcanzado el límite de solicitudes")
+                messagebox.showinfo("Límite Alcanzado", "El período Nov-Dic ha alcanzado el límite de solicitudes ")
 
     def _obtener_contador_global(self, periodo):
         global contadorun, contadordo, contadortr, contadorcu
@@ -143,7 +151,7 @@ class ManejadorVacaciones:
         if trabajador_seleccionado.registrar_vacaciones_individual(periodo):
             mensaje_historial_simple = f"Vacación de {periodo} registrada para {trabajador_seleccionado.nombre}."
             historial_actividades.append(mensaje_historial_simple)
-            messagebox.showinfo("Vacaciones Registradas", f"Vacaciones para '{trabajador_seleccionado.nombre}' registradas en '{periodo}'.\n")
+            messagebox.showinfo("Vacaciones Registradas",f"Vacaciones para '{trabajador_seleccionado.nombre}' registradas en '{periodo}'.\n"f"Este trabajador lleva {trabajador_seleccionado.obtener_conteo_vacaciones_individual(periodo)} solicitudes \n")
         else:
             messagebox.showwarning("Límite Individual Alcanzado",f"'{trabajador_seleccionado.nombre}' ya ha alcanzado su límite de 3 solicitudes para el período '{periodo}'.")
 
@@ -166,7 +174,9 @@ class ManejadorVacaciones:
         if not nombres_para_combobox_vacaciones:
             nombres_para_combobox_vacaciones = ["No hay trabajadores registrados aún"]
 
-        self.combobox_trabajadores = ttk.Combobox(self.ventana_vacaciones,values=nombres_para_combobox_vacaciones,state="readonly")
+        self.combobox_trabajadores = ttk.Combobox(self.ventana_vacaciones,
+                                                   values=nombres_para_combobox_vacaciones,
+                                                   state="readonly")
         self.combobox_trabajadores.pack(pady=5)
 
         if nombres_para_combobox_vacaciones and nombres_para_combobox_vacaciones[0] != "No hay trabajadores registrados aún":
@@ -197,87 +207,137 @@ class ManejadorVacaciones:
         tk.Button(self.ventana_vacaciones, text="Volver al Menú Principal", command=volver_a_principal).pack(pady=20)
         self.ventana_vacaciones.protocol("WM_DELETE_WINDOW", volver_a_principal)
 
-class ManejadorAsistencia:
-    def __init__(self, ventana_principal):
-        self.ventana_principal = ventana_principal
-        self.ventana_asistencia = None
-        self.combobox_asistencia = None
-        self.label_trabajadores_listado = None
 
-    def _actualizar_combobox_para_turno(self, turno):
-        nombres_trabajadores_turno = []
-        for trabajador in lista_trabajadores_registrados:
-            if trabajador.horario == turno:
-                nombres_trabajadores_turno.append(trabajador.obtener_texto_para_lista())
+def actualizar_combobox_para_turno(turno_seleccionado):
+    global global_combobox_asistencia, global_label_trabajadores_listado
 
-        self.combobox_asistencia['values'] = nombres_trabajadores_turno
+    nombres_trabajadores_turno = []
+    for trabajador in lista_trabajadores_registrados:
+        if trabajador.horario == turno_seleccionado:
+            nombres_trabajadores_turno.append(trabajador.obtener_texto_para_lista())
 
-        if nombres_trabajadores_turno:
-            self.combobox_asistencia.set("Seleccione un trabajador...")
-            self.combobox_asistencia.config(state="readonly")
-            self.label_trabajadores_listado.config(text=f"Trabajadores en Turno {turno}:")
-        else:
-            self.combobox_asistencia.set("No hay trabajadores en este turno")
-            self.combobox_asistencia.config(state="disabled")
-            self.label_trabajadores_listado.config(text=f"No hay trabajadores en Turno {turno}")
+    global_combobox_asistencia['values'] = nombres_trabajadores_turno
+
+    if nombres_trabajadores_turno:
+        global_combobox_asistencia.set("Seleccione un trabajador...")
+        global_combobox_asistencia.config(state="readonly")
+        global_label_trabajadores_listado.config(text=f"Trabajadores en Turno {turno_seleccionado}:")
+    else:
+        global_combobox_asistencia.set("No hay trabajadores en este turno")
+        global_combobox_asistencia.config(state="disabled")
+        global_label_trabajadores_listado.config(text=f"No hay trabajadores en Turno {turno_seleccionado}")
+
+def registrar_asistencia_seleccionada():
+    global global_combobox_asistencia, global_entry_hora_entrada
+    seleccion_combobox = global_combobox_asistencia.get()
+    if global_combobox_asistencia['state'] == 'disabled' or \
+       seleccion_combobox == "Esperando selección de turno..." or \
+       seleccion_combobox == "No hay trabajadores en este turno" or \
+       not seleccion_combobox:
+        messagebox.showwarning("Error", "Por favor, seleccione un turno y luego un trabajador válido.")
+        return
+
+    hora_entrada_str = global_entry_hora_entrada.get()
+    if not hora_entrada_str:
+        messagebox.showwarning("Error", "Por favor, ingrese la hora de entrada (ej. HH:MM).")
+        return
+
+    try:
+        hora_ingresada = datetime.strptime(hora_entrada_str, "%H:%M").time()
+    except ValueError:
+        messagebox.showwarning("Error de Formato", "Formato de hora incorrecto. Use HH:MM (ej. 08:00, 15:30).")
+        return
+
+    trabajador_obj = None
+    for t in lista_trabajadores_registrados:
+        if t.obtener_texto_para_lista() == seleccion_combobox:
+            trabajador_obj = t
+            break
+
+    if trabajador_obj:
+        tipo_asistencia = "Desconocido"
+        hora_limite_normal = None
+        hora_limite_retardo_menor = None
 
 
-    def abrir_ventana_asistencia(self):
-        self.ventana_principal.withdraw()
+        if trabajador_obj.horario == "Matutino":
+            hora_limite_normal = datetime.strptime("07:00", "%H:%M").time()
+            hora_limite_retardo_menor = datetime.strptime("07:10", "%H:%M").time()
+            hora_limite_retardo_mayor = datetime.strptime("07:30", "%H:%M").time()
+        elif trabajador_obj.horario == "Vespertino":
+            hora_limite_normal = datetime.strptime("14:00", "%H:%M").time()
+            hora_limite_retardo_menor = datetime.strptime("14:10", "%H:%M").time()
+            hora_limite_retardo_mayor = datetime.strptime("14:30", "%H:%M").time()
+        elif trabajador_obj.horario == "Nocturno":
+            hora_limite_normal = datetime.strptime("20:00", "%H:%M").time()
+            hora_limite_retardo_menor = datetime.strptime("20:10", "%H:%M").time()
+            hora_limite_retardo_mayor = datetime.strptime("20:30", "%H:%M").time()
 
-        self.ventana_asistencia = tk.Toplevel(self.ventana_principal)
-        self.ventana_asistencia.title("Pasar Asistencia")
-        self.ventana_asistencia.geometry("450x380")
-
-        tk.Label(self.ventana_asistencia, text="1. Seleccione el Turno:", font=("Arial", 12)).pack(pady=10)
-
-
-        frame_turnos = tk.Frame(self.ventana_asistencia)
-        frame_turnos.pack(pady=5)
-
-        tk.Button(frame_turnos, text="Turno Matutino", command=lambda: self._actualizar_combobox_para_turno("Matutino")).pack(side=tk.LEFT, padx=5)
-        tk.Button(frame_turnos, text="Turno Vespertino", command=lambda: self._actualizar_combobox_para_turno("Vespertino")).pack(side=tk.LEFT, padx=5)
-        tk.Button(frame_turnos, text="Turno Nocturno", command=lambda: self._actualizar_combobox_para_turno("Nocturno")).pack(side=tk.LEFT, padx=5)
-
-        tk.Label(self.ventana_asistencia, text="2. Seleccione un trabajador:", font=("Arial", 12)).pack(pady=10)
-
-        self.label_trabajadores_listado = tk.Label(self.ventana_asistencia, text="Seleccione un turno primero", font=("Arial", 10))
-        self.label_trabajadores_listado.pack(pady=5)
-        self.combobox_asistencia = ttk.Combobox(self.ventana_asistencia, values=[], state="disabled", width=45)
-        self.combobox_asistencia.set("Esperando selección de turno...") # Texto por defecto
-        self.combobox_asistencia.pack(pady=5)
-
-
-        def registrar_asistencia_seleccionada():
-            seleccion_combobox = self.combobox_asistencia.get()
-            if self.combobox_asistencia['state'] == 'disabled' or seleccion_combobox == "Esperando selección de turno..." or seleccion_combobox == "No hay trabajadores en este turno" or not seleccion_combobox:
-                messagebox.showwarning("Error", "Por favor, seleccione un turno y luego un trabajador válido.")
-                return
-
-            trabajador_obj = None
-            for t in lista_trabajadores_registrados:
-                if t.obtener_texto_para_lista() == seleccion_combobox:
-                    trabajador_obj = t
-                    break
-
-            if trabajador_obj:
-                mensaje_historial_simple = f"Asistencia registrada para: {trabajador_obj.nombre} (Horario: {trabajador_obj.horario})"
-                historial_actividades.append(mensaje_historial_simple)
-                messagebox.showinfo("Asistencia Registrada", mensaje_historial_simple)
+        if hora_limite_normal and hora_limite_retardo_menor and hora_limite_retardo_mayor:
+            if hora_ingresada <= hora_limite_normal:
+                tipo_asistencia = "Asistencia Normal"
+            elif hora_ingresada <= hora_limite_retardo_menor:
+                tipo_asistencia = "Retardo menor"
+            elif hora_ingresada <= hora_limite_retardo_mayor:
+                tipo_asistencia = "Retardo mayor"
             else:
-                messagebox.showerror("Error", "No se pudo encontrar el trabajador seleccionado.")
+                tipo_asistencia = "Falta"
+        else:
+            tipo_asistencia = "Horario no definido para reglas de asistencia"
 
+        mensaje_historial_completo = (
+            f"Asistencia registrada para: {trabajador_obj.nombre}\n"
+            f"Horario: {trabajador_obj.horario}\n"
+            f"Hora de Entrada: {hora_ingresada.strftime('%H:%M')}\n" 
+            f"Estado: {tipo_asistencia}"
+        )
+        historial_actividades.append(mensaje_historial_completo)
+        messagebox.showinfo("Asistencia Registrada", mensaje_historial_completo)
+    else:
+        messagebox.showerror("Error", "No se pudo encontrar el trabajador seleccionado.")
 
-        tk.Button(self.ventana_asistencia, text="3. Registrar Asistencia", command=registrar_asistencia_seleccionada).pack(pady=15)
+def volver_desde_asistencia():
+    global global_ventana_asistencia
+    global_ventana_asistencia.destroy()
+    ventana_menu.deiconify()
 
-        def volver_desde_asistencia():
-             self.ventana_asistencia.destroy()
-             self.ventana_principal.deiconify()
+def pasar_asistencia_sencilla():
+    global global_ventana_asistencia, global_combobox_asistencia, global_label_trabajadores_listado, global_entry_hora_entrada
 
-        tk.Button(self.ventana_asistencia, text="Volver al Menú Principal", command=volver_desde_asistencia).pack(pady=10)
+    ventana_menu.withdraw()
 
-        self.ventana_asistencia.protocol("WM_DELETE_WINDOW", volver_desde_asistencia)
+    global_ventana_asistencia = tk.Toplevel(ventana_menu)
+    global_ventana_asistencia.title("Pasar Asistencia")
+    global_ventana_asistencia.geometry("450x450")
 
+    tk.Label(global_ventana_asistencia, text="1. Seleccione el Turno:", font=("Arial", 12)).pack(pady=10)
+
+    frame_turnos = tk.Frame(global_ventana_asistencia)
+    frame_turnos.pack(pady=5)
+
+    tk.Button(frame_turnos, text="Turno Matutino", command=lambda: actualizar_combobox_para_turno("Matutino")).pack(side=tk.LEFT, padx=5)
+    tk.Button(frame_turnos, text="Turno Vespertino", command=lambda: actualizar_combobox_para_turno("Vespertino")).pack(side=tk.LEFT, padx=5)
+    tk.Button(frame_turnos, text="Turno Nocturno", command=lambda: actualizar_combobox_para_turno("Nocturno")).pack(side=tk.LEFT, padx=5)
+
+    tk.Label(global_ventana_asistencia, text="2. Seleccione un trabajador:", font=("Arial", 12)).pack(pady=10)
+
+    global_label_trabajadores_listado = tk.Label(global_ventana_asistencia, text="Seleccione un turno primero", font=("Arial", 10))
+    global_label_trabajadores_listado.pack(pady=5)
+
+    global_combobox_asistencia = ttk.Combobox(global_ventana_asistencia, values=[], state="disabled", width=45)
+    global_combobox_asistencia.set("Esperando selección de turno...")
+    global_combobox_asistencia.pack(pady=5)
+
+    tk.Label(global_ventana_asistencia, text="3. Ingrese la Hora de Entrada (HH:MM):", font=("Arial", 12)).pack(pady=10)
+    global_entry_hora_entrada = tk.Entry(global_ventana_asistencia, width=10, justify='center')
+    global_entry_hora_entrada.pack(pady=5)
+    global_entry_hora_entrada.insert(0, "00:00")
+
+    tk.Button(global_ventana_asistencia, text="4. Registrar Asistencia", command=registrar_asistencia_seleccionada).pack(pady=15) # ## CAMBIO: ENTRADA MANUAL DE HORA - Número de paso actualizado
+
+    tk.Button(global_ventana_asistencia, text="Volver al Menú Principal", command=volver_desde_asistencia).pack(pady=10)
+
+    global_ventana_asistencia.protocol("WM_DELETE_WINDOW", volver_desde_asistencia)
 
 def agregar_trabajador_ven():
     ventana_menu.withdraw()
@@ -399,8 +459,7 @@ tk.Label(ventana_menu, text="Bienvenido, escoja qué desea realizar").pack(pady=
 boton_opc1re = tk.Button(ventana_menu, text="Agregar nuevo trabajador", command=agregar_trabajador_ven)
 boton_opc1re.pack(pady=10)
 
-manejador_asistencia_instancia = ManejadorAsistencia(ventana_menu)
-boton_asis = tk.Button(ventana_menu, text="Pasar asistencia a trabajador", command=manejador_asistencia_instancia.abrir_ventana_asistencia)
+boton_asis = tk.Button(ventana_menu, text="Pasar asistencia a trabajador", command=pasar_asistencia_sencilla)
 boton_asis.pack(pady=10)
 
 manejador_vacaciones_instancia = ManejadorVacaciones(ventana_menu)
