@@ -372,13 +372,14 @@ def agregar_trabajador_ven():
 
     def registrar_trabajador():
         nombre = entry_nombre.get()
-        edad = entry_edad.get()
-        genero = entry_genero.get()
+        edad_str = entry_edad.get()
+        genero2 = combo_genero.get()
         curp = entry_curp.get()
         nss = entry_nss.get()
+        puesto = combo_puesto.get()
         horario = combo_horario.get()
 
-        if not all([nombre, edad, genero, curp, nss, horario]):
+        if not all([nombre, edad_str, genero2, curp, nss,puesto,horario]):
             messagebox.showerror("Error de Registro", "Todos los campos son obligatorios.")
             return
 
@@ -386,7 +387,16 @@ def agregar_trabajador_ven():
             messagebox.showwarning("Error de Registro", "Por favor, seleccione un horario para el empleado.")
             return
 
-        nuevo_trabajador = Trabajador(nombre, edad, genero, curp, nss, horario)
+        try:
+            edad = int(edad_str)
+            if not (18 <= edad <= 65):
+                messagebox.showwarning("Edad Inválida", "La edad debe estar entre 18 y 65 años.")
+                return
+        except ValueError:
+            messagebox.showwarning("Edad Inválida", "Por favor, ingrese una edad válida (número entero).")
+            return
+
+        nuevo_trabajador = Trabajador(nombre, edad_str, genero2, curp, nss,puesto, horario)
         lista_trabajadores_registrados.append(nuevo_trabajador)
 
         mensaje_historial_simple = f"Nuevo empleado registrado: {nuevo_trabajador.nombre} (NSS: {nuevo_trabajador.nss}, Horario: {nuevo_trabajador.horario})"
@@ -397,13 +407,13 @@ def agregar_trabajador_ven():
 
         entry_nombre.delete(0, tk.END)
         entry_edad.delete(0, tk.END)
-        entry_genero.delete(0, tk.END)
         entry_curp.delete(0, tk.END)
         entry_nss.delete(0, tk.END)
+        combo_genero.set("Seleccione el genero")
+        combo_puesto.set("Seleccione el puesto")
         combo_horario.set("Seleccione Horario")
 
-    labels_entries_info = [("Nombre:", "entry_nombre"),("Edad:", "entry_edad"),("Género:", "entry_genero"),("CURP:", "entry_curp"),("NSS:", "entry_nss"),
-    ]
+    labels_entries_info = [("Nombre:", "entry_nombre"),("Edad:", "entry_edad"),("CURP:", "entry_curp"),("NSS:", "entry_nss"),]
 
     for text, entry_name in labels_entries_info:
         tk.Label(ventana_menudos, text=text, font=FUENTE_ETIQUETA, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=5)
@@ -413,11 +423,20 @@ def agregar_trabajador_ven():
 
     entry_nombre = getattr(ventana_menudos, "entry_nombre")
     entry_edad = getattr(ventana_menudos, "entry_edad")
-    entry_genero = getattr(ventana_menudos, "entry_genero")
     entry_curp = getattr(ventana_menudos, "entry_curp")
     entry_nss = getattr(ventana_menudos, "entry_nss")
 
-    
+    tk.Label(ventana_menudos, text="genero", font=FUENTE_ETIQUETA, bg=COLOR_FONDO_CLARO,fg=COLOR_TEXTO_GENERAL).pack(pady=5)
+    opciones_genero = ["Masculino", "femenino", "prefiero no decirlo"]
+    combo_genero= ttk.Combobox(ventana_menudos, values=opciones_genero, state="readonly", font=FUENTE_ETIQUETA,width=37)
+    combo_genero.set("Seleccione el genero")
+    combo_genero.pack(pady=5, ipadx=8, ipady=5)
+
+    tk.Label(ventana_menudos, text="puesto", font=FUENTE_ETIQUETA, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=5)
+    opciones_puesto = ["Basificado", "Homologado", "Regularizado", "Contrato"]
+    combo_puesto = ttk.Combobox(ventana_menudos, values=opciones_puesto, state="readonly", font=FUENTE_ETIQUETA, width=37)
+    combo_puesto.set("Seleccione el puesto")
+    combo_puesto.pack(pady=5, ipadx=8, ipady=5)
 
     tk.Label(ventana_menudos, text="Horario de Trabajo:", font=FUENTE_ETIQUETA, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=5)
     opciones_horario = ["Matutino", "Vespertino", "Nocturno"]
@@ -491,4 +510,5 @@ btn_ver_historial.pack(pady=15)
 
 
 ventana_menu.mainloop()
+
 
