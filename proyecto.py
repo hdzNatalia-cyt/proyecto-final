@@ -37,22 +37,20 @@ FUENTE_BOTON_NORMAL = ("Arial", 12, "bold")
 
 
 class Trabajador:
-    def __init__(self, nombre, edad, genero, curp, nss, horario):
+    def __init__(self, nombre, edad, genero, curp, nss, puesto, horario):
         self.nombre = nombre
         self.edad = edad
         self.genero = genero
         self.curp = curp
         self.nss = nss
+        self.puesto = puesto
         self.horario = horario
-        self.vacaciones_solicitadas_individual = {
-            "Enero-Febrero": 0,
-            "Marzo-Abril": 0,
-            "Junio-Julio": 0,
-            "Nov-Dic": 0,
-        }
+        self.habilitado = True  # ¡NUEVO!: Por defecto, un trabajador está habilitado
+        self.vacaciones_solicitadas_individual = {"Enero-Febrero": 0,"Marzo-Abril": 0,"Junio-Julio": 0,"Nov-Dic": 0,}
 
     def obtener_texto_para_lista(self):
-        return f"{self.nombre} (NSS: {self.nss})"
+        estado = " (Inhabilitado)" if not self.habilitado else ""
+        return f"{self.nombre} (NSS: {self.nss}){estado}"
 
     def obtener_conteo_vacaciones_individual(self, periodo):
         return self.vacaciones_solicitadas_individual.get(periodo, 0)
@@ -117,10 +115,14 @@ class ManejadorVacaciones:
     def _actualizar_estado_botones_vacaciones(self):
         indice_seleccionado = self.combobox_trabajadores.current()
         trabajador_seleccionado = None
-        global nombres_para_combobox_vacaciones
-        if indice_seleccionado != -1 and lista_trabajadores_registrados and \
-           (nombres_para_combobox_vacaciones[0] != "No hay empleados registrados aún"):
-            trabajador_seleccionado = lista_trabajadores_registrados[indice_seleccionado]
+        global nombres_para_combobox_vacaciones  
+
+        texto_seleccionado = self.combobox_trabajadores.get()
+        if texto_seleccionado and texto_seleccionado != "No hay empleados registrados aún":
+            for t in lista_trabajadores_registrados:
+                if t.obtener_texto_para_lista() == texto_seleccionado:
+                    trabajador_seleccionado = t
+                    break
 
         periodos_orden = ["Enero-Febrero", "Marzo-Abril", "Junio-Julio", "Nov-Dic"]
         global_buttons = [boton_vacu, boton_vacd, boton_vact, boton_vacc]
@@ -135,22 +137,35 @@ class ManejadorVacaciones:
 
             limite_individual_alcanzado = False
             if trabajador_seleccionado:
-                limite_individual_alcanzado = (trabajador_seleccionado.obtener_conteo_vacaciones_individual(periodo) >= 3)
+                limite_individual_alcanzado = (
+                            trabajador_seleccionado.obtener_conteo_vacaciones_individual(periodo) >= 3)
 
-            if not trabajador_seleccionado or limite_global_alcanzado or limite_individual_alcanzado:
+            if not trabajador_seleccionado or not trabajador_seleccionado.habilitado or limite_global_alcanzado or limite_individual_alcanzado:
                 btn.config(state=tk.DISABLED)
             else:
                 btn.config(state=tk.NORMAL)
 
     def _accion_combinada_vacacion(self, periodo, tu_funcion_original):
-        indice_seleccionado = self.combobox_trabajadores.current()
+        seleccion_combobox_texto = self.combobox_trabajadores.get()
 
-        if indice_seleccionado == -1 or not lista_trabajadores_registrados or \
-           nombres_para_combobox_vacaciones[0] == "No hay empleados registrados aún":
+        if not seleccion_combobox_texto or seleccion_combobox_texto == "No hay empleados registrados aún" or \
+                seleccion_combobox_texto == "Seleccione un empleado...": 
             messagebox.showwarning("Error", "Por favor, seleccione un empleado primero.")
             return
 
-        trabajador_seleccionado = lista_trabajadores_registrados[indice_seleccionado]
+        trabajador_seleccionado = None
+        for t in lista_trabajadores_registrados:
+            if t.obtener_texto_para_lista() == seleccion_combobox_texto:
+                trabajador_seleccionado = t
+                break
+
+        if not trabajador_seleccionado:
+            messagebox.showerror("Error", "No se pudo encontrar el empleado seleccionado.")
+            return
+
+        if not trabajador_seleccionado.habilitado:
+            messagebox.showwarning("Inhabilitado",f"'{trabajador_seleccionado.nombre}' está inhabilitado y no puede solicitar vacaciones.")
+            return
 
         contador_global_antes = self._obtener_contador_global(periodo)
 
@@ -171,7 +186,7 @@ class ManejadorVacaciones:
 
     def abrir_ventana_vacaciones(self):
         global boton_vacu, boton_vacd, boton_vact, boton_vacc
-        global nombres_para_combobox_vacaciones
+        global nombres_para_combobox_vacaciones  
 
         self.ventana_principal.withdraw()
 
@@ -180,45 +195,48 @@ class ManejadorVacaciones:
         self.ventana_vacaciones.state('zoomed')
         self.ventana_vacaciones.configure(bg=COLOR_FONDO_CLARO)
 
-        tk.Label(self.ventana_vacaciones, text="Fechas de Vacaciones Disponibles",font=FUENTE_TITULO, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=20)
+        tk.Label(self.ventana_vacaciones, text="Fechas de Vacaciones Disponibles", font=FUENTE_TITULO, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=20)
 
-        tk.Label(self.ventana_vacaciones, text="Seleccione un Empleado:", font=FUENTE_SUBTITULO, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=10)
+        tk.Label(self.ventana_vacaciones, text="Seleccione un Empleado:", font=FUENTE_SUBTITULO, bg=COLOR_FONDO_CLARO,fg=COLOR_TEXTO_GENERAL).pack(pady=10)
+
         nombres_para_combobox_vacaciones = [t.obtener_texto_para_lista() for t in lista_trabajadores_registrados]
         if not nombres_para_combobox_vacaciones:
             nombres_para_combobox_vacaciones = ["No hay empleados registrados aún"]
 
-        self.combobox_trabajadores = ttk.Combobox(self.ventana_vacaciones,values=nombres_para_combobox_vacaciones,state="readonly",font=FUENTE_ETIQUETA,width=40)
+        self.combobox_trabajadores = ttk.Combobox(self.ventana_vacaciones, values=nombres_para_combobox_vacaciones,state="readonly", font=FUENTE_ETIQUETA, width=40)
         self.combobox_trabajadores.pack(pady=10, ipadx=5, ipady=5)
 
-        if nombres_para_combobox_vacaciones and nombres_para_combobox_vacaciones[0] != "No hay empleados registrados aún":
+        if nombres_para_combobox_vacaciones and nombres_para_combobox_vacaciones[
+            0] != "No hay empleados registrados aún":
             self.combobox_trabajadores.current(0)
+        else:  
+            self.combobox_trabajadores.set("No hay empleados registrados aún")
+            self.combobox_trabajadores.config(state="disabled")
 
         self.combobox_trabajadores.bind("<<ComboboxSelected>>", lambda event: self._actualizar_estado_botones_vacaciones())
 
-        tk.Label(self.ventana_vacaciones, text="Períodos de Solicitud de Vacaciones:",
-                 font=FUENTE_SUBTITULO, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=15)
+        tk.Label(self.ventana_vacaciones, text="Períodos de Solicitud de Vacaciones:", font=FUENTE_SUBTITULO, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=15)
 
         global boton_vacu, boton_vacd, boton_vact, boton_vacc
-        boton_vacu = tk.Button(self.ventana_vacaciones, text="Enero - Febrero",
-                               command=lambda: self._accion_combinada_vacacion("Enero-Febrero", self.vacaciones_uno), font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_ACCION, fg=COLOR_TEXTO_BOTON,width=25, height=1, relief="raised", bd=3)
+        boton_vacu = tk.Button(self.ventana_vacaciones, text="Enero - Febrero",command=lambda: self._accion_combinada_vacacion("Enero-Febrero", self.vacaciones_uno),font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_ACCION, fg=COLOR_TEXTO_BOTON, width=25,height=1, relief="raised", bd=3)
         boton_vacu.pack(pady=7)
 
-        boton_vacd = tk.Button(self.ventana_vacaciones, text="Marzo - Abril", command=lambda: self._accion_combinada_vacacion("Marzo-Abril", self.vacaciones_dos),font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_ACCION, fg=COLOR_TEXTO_BOTON,width=25, height=1, relief="raised", bd=3)
+        boton_vacd = tk.Button(self.ventana_vacaciones, text="Marzo - Abril",command=lambda: self._accion_combinada_vacacion("Marzo-Abril", self.vacaciones_dos), font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_ACCION, fg=COLOR_TEXTO_BOTON, width=25, height=1, relief="raised", bd=3)
         boton_vacd.pack(pady=7)
 
-        boton_vact = tk.Button(self.ventana_vacaciones, text="Junio - Julio", command=lambda: self._accion_combinada_vacacion("Junio-Julio", self.vacaciones_tres),font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_ACCION, fg=COLOR_TEXTO_BOTON, width=25, height=1, relief="raised", bd=3)
+        boton_vact = tk.Button(self.ventana_vacaciones, text="Junio - Julio",command=lambda: self._accion_combinada_vacacion("Junio-Julio", self.vacaciones_tres),font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_ACCION, fg=COLOR_TEXTO_BOTON, width=25,height=1, relief="raised", bd=3)
         boton_vact.pack(pady=7)
 
-        boton_vacc = tk.Button(self.ventana_vacaciones, text="Noviembre - Diciembre", command=lambda: self._accion_combinada_vacacion("Nov-Dic", self.vacaciones_cuatro),font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_ACCION, fg=COLOR_TEXTO_BOTON,width=25, height=1, relief="raised", bd=3)
+        boton_vacc = tk.Button(self.ventana_vacaciones, text="Noviembre - Diciembre",command=lambda: self._accion_combinada_vacacion("Nov-Dic", self.vacaciones_cuatro),font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_ACCION, fg=COLOR_TEXTO_BOTON, width=25,height=1, relief="raised", bd=3)
         boton_vacc.pack(pady=7)
 
-        self._actualizar_estado_botones_vacaciones()
+        self._actualizar_estado_botones_vacaciones() 
 
         def volver_a_principal():
             self.ventana_vacaciones.destroy()
             self.ventana_principal.deiconify()
 
-        tk.Button(self.ventana_vacaciones, text="Volver al Menú Principal", command=volver_a_principal,font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_VOLVER, fg=COLOR_TEXTO_BOTON,width=20, height=1, relief="raised", bd=3).pack(pady=25) # Ancho y alto ajustados
+        tk.Button(self.ventana_vacaciones, text="Volver al Menú Principal", command=volver_a_principal, font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_VOLVER, fg=COLOR_TEXTO_BOTON, width=20, height=1,relief="raised", bd=3).pack(pady=25)
         self.ventana_vacaciones.protocol("WM_DELETE_WINDOW", volver_a_principal)
 
 
@@ -227,7 +245,7 @@ def actualizar_combobox_para_turno(turno_seleccionado):
 
     nombres_trabajadores_turno = []
     for trabajador in lista_trabajadores_registrados:
-        if trabajador.horario == turno_seleccionado:
+        if trabajador.horario == turno_seleccionado and trabajador.habilitado:
             nombres_trabajadores_turno.append(trabajador.obtener_texto_para_lista())
 
     global_combobox_asistencia['values'] = nombres_trabajadores_turno
@@ -237,17 +255,18 @@ def actualizar_combobox_para_turno(turno_seleccionado):
         global_combobox_asistencia.config(state="readonly")
         global_label_trabajadores_listado.config(text=f"Empleados en Turno {turno_seleccionado}:")
     else:
-        global_combobox_asistencia.set("No hay empleados en este turno")
+        global_combobox_asistencia.set("No hay empleados habilitados en este turno")  
         global_combobox_asistencia.config(state="disabled")
-        global_label_trabajadores_listado.config(text=f"No hay empleados en Turno {turno_seleccionado}")
+        global_label_trabajadores_listado.config(text=f"No hay empleados habilitados en Turno {turno_seleccionado}")
+
 
 def registrar_asistencia_seleccionada():
     global global_combobox_asistencia, global_entry_hora_entrada
-    seleccion_combobox = global_combobox_asistencia.get()
+    seleccion_combobox_texto = global_combobox_asistencia.get()
+
     if global_combobox_asistencia['state'] == 'disabled' or \
-       seleccion_combobox == "Esperando selección de turno..." or \
-       seleccion_combobox == "No hay empleados en este turno" or \
-       not seleccion_combobox or seleccion_combobox == "Seleccione un empleado...":
+            seleccion_combobox_texto in ["Esperando selección de turno...","No hay empleados habilitados en este turno", "Seleccione un empleado..."] or \
+            not seleccion_combobox_texto:
         messagebox.showwarning("Error de Asistencia", "Por favor, seleccione un turno y luego un empleado válido.")
         return
 
@@ -264,11 +283,15 @@ def registrar_asistencia_seleccionada():
 
     trabajador_obj = None
     for t in lista_trabajadores_registrados:
-        if t.obtener_texto_para_lista() == seleccion_combobox:
+        if t.obtener_texto_para_lista() == seleccion_combobox_texto:
             trabajador_obj = t
             break
 
     if trabajador_obj:
+        if not trabajador_obj.habilitado:
+            messagebox.showwarning("Inhabilitado",f"'{trabajador_obj.nombre}' está inhabilitado y no puede registrar asistencia.")
+            return
+
         tipo_asistencia = "Desconocido"
         hora_limite_normal = None
         hora_limite_retardo_menor = None
@@ -310,10 +333,12 @@ def registrar_asistencia_seleccionada():
     else:
         messagebox.showerror("Error", "No se pudo encontrar el empleado seleccionado.")
 
+
 def volver_desde_asistencia():
     global global_ventana_asistencia
     global_ventana_asistencia.destroy()
     ventana_menu.deiconify()
+
 
 def pasar_asistencia_sencilla():
     global global_ventana_asistencia, global_combobox_asistencia, global_label_trabajadores_listado, global_entry_hora_entrada
@@ -325,34 +350,34 @@ def pasar_asistencia_sencilla():
     global_ventana_asistencia.state('zoomed')
     global_ventana_asistencia.configure(bg=COLOR_FONDO_CLARO)
 
-    tk.Label(global_ventana_asistencia, text="Registro de Asistencia de Personal",font=FUENTE_TITULO, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=20)
+    tk.Label(global_ventana_asistencia, text="Registro de Asistencia de Personal", font=FUENTE_TITULO, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=20)
 
-    tk.Label(global_ventana_asistencia, text="1. Seleccione el Turno:",font=FUENTE_SUBTITULO, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=15)
+    tk.Label(global_ventana_asistencia, text="1. Seleccione el Turno:", font=FUENTE_SUBTITULO, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=15)
 
     frame_turnos = tk.Frame(global_ventana_asistencia, bg=COLOR_FONDO_CLARO)
     frame_turnos.pack(pady=10)
 
-    tk.Button(frame_turnos, text="Turno Matutino", command=lambda: actualizar_combobox_para_turno("Matutino"), font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_PRINCIPAL, fg=COLOR_TEXTO_BOTON, padx=10, pady=5, relief="raised", bd=3).pack(side=tk.LEFT, padx=5)
-    tk.Button(frame_turnos, text="Turno Vespertino", command=lambda: actualizar_combobox_para_turno("Vespertino"), font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_PRINCIPAL, fg=COLOR_TEXTO_BOTON,padx=10, pady=5, relief="raised", bd=3).pack(side=tk.LEFT, padx=5)
-    tk.Button(frame_turnos, text="Turno Nocturno", command=lambda: actualizar_combobox_para_turno("Nocturno"), font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_PRINCIPAL, fg=COLOR_TEXTO_BOTON,padx=10, pady=5, relief="raised", bd=3).pack(side=tk.LEFT, padx=5)
+    tk.Button(frame_turnos, text="Turno Matutino", command=lambda: actualizar_combobox_para_turno("Matutino"), font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_PRINCIPAL, fg=COLOR_TEXTO_BOTON, padx=10, pady=5,relief="raised", bd=3).pack(side=tk.LEFT, padx=5)
+    tk.Button(frame_turnos, text="Turno Vespertino", command=lambda: actualizar_combobox_para_turno("Vespertino"), font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_PRINCIPAL, fg=COLOR_TEXTO_BOTON, padx=10, pady=5,relief="raised", bd=3).pack(side=tk.LEFT, padx=5)
+    tk.Button(frame_turnos, text="Turno Nocturno", command=lambda: actualizar_combobox_para_turno("Nocturno"), font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_PRINCIPAL, fg=COLOR_TEXTO_BOTON, padx=10, pady=5, relief="raised", bd=3).pack(side=tk.LEFT, padx=5)
 
-    tk.Label(global_ventana_asistencia, text="2. Seleccione un Empleado:", font=FUENTE_SUBTITULO, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=15)
+    tk.Label(global_ventana_asistencia, text="2. Seleccione un Empleado:", font=FUENTE_SUBTITULO, bg=COLOR_FONDO_CLARO,fg=COLOR_TEXTO_GENERAL).pack(pady=15)
 
-    global_label_trabajadores_listado = tk.Label(global_ventana_asistencia, text="Seleccione un turno primero", font=FUENTE_ETIQUETA, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL)
+    global_label_trabajadores_listado = tk.Label(global_ventana_asistencia, text="Seleccione un turno primero",font=FUENTE_ETIQUETA, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL)
     global_label_trabajadores_listado.pack(pady=10)
 
-    global_combobox_asistencia = ttk.Combobox(global_ventana_asistencia, values=[], state="disabled",width=40, font=FUENTE_ETIQUETA)
+    global_combobox_asistencia = ttk.Combobox(global_ventana_asistencia, values=[], state="disabled", width=40,font=FUENTE_ETIQUETA)
     global_combobox_asistencia.set("Esperando selección de turno...")
     global_combobox_asistencia.pack(pady=10, ipadx=5, ipady=5)
 
-    tk.Label(global_ventana_asistencia, text="3. Ingrese la Hora de Entrada (HH:MM):", font=FUENTE_SUBTITULO, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=15)
-    global_entry_hora_entrada = tk.Entry(global_ventana_asistencia, width=15, justify='center',font=FUENTE_ENTRADA, relief="groove", bd=3, highlightbackground=COLOR_BORDE_ENTRADA, highlightthickness=2)
+    tk.Label(global_ventana_asistencia, text="3. Ingrese la Hora de Entrada (HH:MM):", font=FUENTE_SUBTITULO,bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=15)
+    global_entry_hora_entrada = tk.Entry(global_ventana_asistencia, width=15, justify='center', font=FUENTE_ENTRADA,relief="groove", bd=3, highlightbackground=COLOR_BORDE_ENTRADA,highlightthickness=2)
     global_entry_hora_entrada.pack(pady=10)
     global_entry_hora_entrada.insert(0, datetime.now().strftime("%H:%M"))
 
-    tk.Button(global_ventana_asistencia, text="4. Registrar Asistencia", command=registrar_asistencia_seleccionada, font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_ACCION, fg=COLOR_TEXTO_BOTON,width=25, height=1, relief="raised", bd=4).pack(pady=25) # Ancho y alto ajustados
+    tk.Button(global_ventana_asistencia, text="4. Registrar Asistencia", command=registrar_asistencia_seleccionada,font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_ACCION, fg=COLOR_TEXTO_BOTON, width=25, height=1, relief="raised", bd=4).pack(pady=25)
 
-    tk.Button(global_ventana_asistencia, text="Volver al Menú Principal", command=volver_desde_asistencia,font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_VOLVER, fg=COLOR_TEXTO_BOTON,width=20, height=1, relief="raised", bd=3).pack(pady=15) # Ancho y alto ajustados
+    tk.Button(global_ventana_asistencia, text="Volver al Menú Principal", command=volver_desde_asistencia,font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_VOLVER, fg=COLOR_TEXTO_BOTON, width=20, height=1,relief="raised", bd=3).pack(pady=15)
 
     global_ventana_asistencia.protocol("WM_DELETE_WINDOW", volver_desde_asistencia)
 
@@ -365,9 +390,9 @@ def agregar_trabajador_ven():
     ventana_menudos.state('zoomed')
     ventana_menudos.configure(bg=COLOR_FONDO_CLARO)
 
-    tk.Label(ventana_menudos, text="Registro de Nuevo Empleado",font=FUENTE_TITULO, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=20)
+    tk.Label(ventana_menudos, text="Registro de Nuevo Empleado", font=FUENTE_TITULO, bg=COLOR_FONDO_CLARO,fg=COLOR_TEXTO_GENERAL).pack(pady=20)
 
-    mensaje_registro_label = tk.Label(ventana_menudos, text="", fg=COLOR_BOTON_ACCION, bg=COLOR_FONDO_CLARO, font=FUENTE_ETIQUETA)
+    mensaje_registro_label = tk.Label(ventana_menudos, text="", fg=COLOR_BOTON_ACCION, bg=COLOR_FONDO_CLARO,font=FUENTE_ETIQUETA)
     mensaje_registro_label.pack(pady=10)
 
     def registrar_trabajador():
@@ -379,12 +404,20 @@ def agregar_trabajador_ven():
         puesto = combo_puesto.get()
         horario = combo_horario.get()
 
-        if not all([nombre, edad_str, genero2, curp, nss,puesto,horario]):
+        if not all([nombre, edad_str, genero2, curp, nss, puesto, horario]):
             messagebox.showerror("Error de Registro", "Todos los campos son obligatorios.")
             return
 
         if horario == "Seleccione Horario":
             messagebox.showwarning("Error de Registro", "Por favor, seleccione un horario para el empleado.")
+            return
+
+        if puesto == "Seleccione el puesto":
+            messagebox.showwarning("Error de Registro", "Por favor, seleccione un puesto para el empleado.")
+            return
+
+        if genero2 == "Seleccione el genero":
+            messagebox.showwarning("Error de Registro", "Por favor, seleccione un género para el empleado.")
             return
 
         try:
@@ -396,7 +429,7 @@ def agregar_trabajador_ven():
             messagebox.showwarning("Edad Inválida", "Por favor, ingrese una edad válida (número entero).")
             return
 
-        nuevo_trabajador = Trabajador(nombre, edad_str, genero2, curp, nss,puesto, horario)
+        nuevo_trabajador = Trabajador(nombre, edad_str, genero2, curp, nss, puesto, horario)
         lista_trabajadores_registrados.append(nuevo_trabajador)
 
         mensaje_historial_simple = f"Nuevo empleado registrado: {nuevo_trabajador.nombre} (NSS: {nuevo_trabajador.nss}, Horario: {nuevo_trabajador.horario})"
@@ -416,7 +449,7 @@ def agregar_trabajador_ven():
     labels_entries_info = [("Nombre:", "entry_nombre"),("Edad:", "entry_edad"),("CURP:", "entry_curp"),("NSS:", "entry_nss"),]
 
     for text, entry_name in labels_entries_info:
-        tk.Label(ventana_menudos, text=text, font=FUENTE_ETIQUETA, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=5)
+        tk.Label(ventana_menudos, text=text, font=FUENTE_ETIQUETA, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack( pady=5)
         entry_widget = tk.Entry(ventana_menudos, font=FUENTE_ENTRADA, width=40, relief="groove", bd=3, highlightbackground=COLOR_BORDE_ENTRADA, highlightthickness=2)
         setattr(ventana_menudos, entry_name, entry_widget)
         entry_widget.pack(pady=5, ipadx=8, ipady=5)
@@ -426,32 +459,32 @@ def agregar_trabajador_ven():
     entry_curp = getattr(ventana_menudos, "entry_curp")
     entry_nss = getattr(ventana_menudos, "entry_nss")
 
-    tk.Label(ventana_menudos, text="genero", font=FUENTE_ETIQUETA, bg=COLOR_FONDO_CLARO,fg=COLOR_TEXTO_GENERAL).pack(pady=5)
+    tk.Label(ventana_menudos, text="genero", font=FUENTE_ETIQUETA, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=5)
     opciones_genero = ["Masculino", "femenino", "prefiero no decirlo"]
-    combo_genero= ttk.Combobox(ventana_menudos, values=opciones_genero, state="readonly", font=FUENTE_ETIQUETA,width=37)
+    combo_genero = ttk.Combobox(ventana_menudos, values=opciones_genero, state="readonly", font=FUENTE_ETIQUETA, width=37)
     combo_genero.set("Seleccione el genero")
     combo_genero.pack(pady=5, ipadx=8, ipady=5)
 
-    tk.Label(ventana_menudos, text="puesto", font=FUENTE_ETIQUETA, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=5)
+    tk.Label(ventana_menudos, text="puesto", font=FUENTE_ETIQUETA, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack( pady=5)
     opciones_puesto = ["Basificado", "Homologado", "Regularizado", "Contrato"]
     combo_puesto = ttk.Combobox(ventana_menudos, values=opciones_puesto, state="readonly", font=FUENTE_ETIQUETA, width=37)
     combo_puesto.set("Seleccione el puesto")
     combo_puesto.pack(pady=5, ipadx=8, ipady=5)
 
-    tk.Label(ventana_menudos, text="Horario de Trabajo:", font=FUENTE_ETIQUETA, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=5)
+    tk.Label(ventana_menudos, text="Horario de Trabajo:", font=FUENTE_ETIQUETA, bg=COLOR_FONDO_CLARO,fg=COLOR_TEXTO_GENERAL).pack(pady=5)
     opciones_horario = ["Matutino", "Vespertino", "Nocturno"]
     combo_horario = ttk.Combobox(ventana_menudos, values=opciones_horario, state="readonly", font=FUENTE_ETIQUETA, width=37)
     combo_horario.set("Seleccione Horario")
     combo_horario.pack(pady=5, ipadx=8, ipady=5)
 
-    btn_registrar = tk.Button(ventana_menudos, text="Registrar Empleado", command=registrar_trabajador,font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_ACCION, fg=COLOR_TEXTO_BOTON, width=25, height=1, relief="raised", bd=4) # Ancho y alto ajustados
+    btn_registrar = tk.Button(ventana_menudos, text="Registrar Empleado", command=registrar_trabajador, font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_ACCION, fg=COLOR_TEXTO_BOTON, width=25, height=1,relief="raised", bd=4)
     btn_registrar.pack(pady=30)
 
     def volver_menudos():
         ventana_menudos.destroy()
         ventana_menu.deiconify()
 
-    btn_volver = tk.Button(ventana_menudos, text="Volver al Menú Principal", command=volver_menudos,font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_VOLVER, fg=COLOR_TEXTO_BOTON,width=20, height=1, relief="raised", bd=3) # Ancho y alto ajustados
+    btn_volver = tk.Button(ventana_menudos, text="Volver al Menú Principal", command=volver_menudos,font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_VOLVER, fg=COLOR_TEXTO_BOTON, width=20, height=1, relief="raised", bd=3)
     btn_volver.pack(pady=15)
 
     ventana_menudos.protocol("WM_DELETE_WINDOW", volver_menudos)
@@ -464,9 +497,9 @@ def mostrar_historial_simple():
     ventana_historial.state('zoomed')
     ventana_historial.configure(bg=COLOR_FONDO_CLARO)
 
-    tk.Label(ventana_historial, text="Registro de Actividades del Hospital",font=FUENTE_TITULO, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=20)
+    tk.Label(ventana_historial, text="Registro de Actividades del Hospital", font=FUENTE_TITULO, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=20)
 
-    historial_listbox = tk.Listbox(ventana_historial, width=70, height=15, font=FUENTE_ETIQUETA,bg="white", fg=COLOR_TEXTO_GENERAL,selectbackground=COLOR_BOTON_PRINCIPAL, selectforeground="white", relief="sunken", bd=3)
+    historial_listbox = tk.Listbox(ventana_historial, width=70, height=15, font=FUENTE_ETIQUETA, bg="white",fg=COLOR_TEXTO_GENERAL, selectbackground=COLOR_BOTON_PRINCIPAL,selectforeground="white", relief="sunken", bd=3)
     historial_listbox.pack(pady=10, padx=20, fill=tk.BOTH, expand=True)
 
     if not historial_actividades:
@@ -483,32 +516,214 @@ def mostrar_historial_simple():
         ventana_historial.destroy()
         ventana_menu.deiconify()
 
-    btn_volver = tk.Button(ventana_historial, text="Volver al Menú Principal", command=volver_desde_historial,font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_VOLVER, fg=COLOR_TEXTO_BOTON,width=20, height=1, relief="raised", bd=3) # Ancho y alto ajustados
+    btn_volver = tk.Button(ventana_historial, text="Volver al Menú Principal", command=volver_desde_historial,font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_VOLVER, fg=COLOR_TEXTO_BOTON, width=20, height=1,relief="raised", bd=3)
     btn_volver.pack(pady=25)
 
     ventana_historial.protocol("WM_DELETE_WINDOW", volver_desde_historial)
 
+
+
+def abrir_ventana_eliminar_suplente():
+    ventana_menu.withdraw()  
+
+    ventana_gestion_empleados = tk.Toplevel(ventana_menu)
+    ventana_gestion_empleados.title("Gestión de Empleados - Hospital XYZ")
+    ventana_gestion_empleados.state('zoomed')
+    ventana_gestion_empleados.configure(bg=COLOR_FONDO_CLARO)
+
+    tk.Label(ventana_gestion_empleados, text="Eliminar o Asignar Suplente", font=FUENTE_TITULO, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=20)
+
+    tk.Label(ventana_gestion_empleados, text="Seleccione un Empleado:", font=FUENTE_SUBTITULO, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=10)
+
+    def actualizar_lista_empleados_gestion():
+        nombres_empleados = [t.obtener_texto_para_lista() for t in lista_trabajadores_registrados]
+        if not nombres_empleados:
+            nombres_empleados = ["No hay empleados registrados aún"]
+            combobox_empleados.config(state="disabled")
+        else:
+            combobox_empleados.config(state="readonly")
+        combobox_empleados['values'] = nombres_empleados
+        if nombres_empleados and nombres_empleados[0] != "No hay empleados registrados aún":
+            combobox_empleados.current(0)
+        else:
+            combobox_empleados.set(nombres_empleados[0])
+
+    combobox_empleados = ttk.Combobox(ventana_gestion_empleados, values=[],state="readonly", font=FUENTE_ETIQUETA, width=40)
+    combobox_empleados.pack(pady=10, ipadx=5, ipady=5)
+    actualizar_lista_empleados_gestion()  
+
+    def eliminar_trabajador():
+        seleccion_combobox_texto = combobox_empleados.get()
+        if not seleccion_combobox_texto or seleccion_combobox_texto == "No hay empleados registrados aún":
+            messagebox.showwarning("Error", "Por favor, seleccione un empleado para eliminar.")
+            return
+
+        trabajador_a_eliminar = None
+        for t in lista_trabajadores_registrados:
+            if t.obtener_texto_para_lista() == seleccion_combobox_texto:
+                trabajador_a_eliminar = t
+                break
+
+        if trabajador_a_eliminar:
+            confirmar = messagebox.askyesno("Confirmar Eliminación", f"¿Está seguro de eliminar a '{trabajador_a_eliminar.nombre}' del sistema?\nEsta acción es irreversible.")
+            if confirmar:
+                lista_trabajadores_registrados.remove(trabajador_a_eliminar)
+                historial_actividades.append(f"Empleado '{trabajador_a_eliminar.nombre}' ELIMINADO del sistema.")
+                messagebox.showinfo("Eliminado", f"'{trabajador_a_eliminar.nombre}' ha sido eliminado correctamente.")
+                actualizar_lista_empleados_gestion()  
+            else:
+                messagebox.showinfo("Cancelado", "La eliminación ha sido cancelada.")
+        else:
+            messagebox.showerror("Error", "No se pudo encontrar el empleado seleccionado.")
+
+    def asignar_suplente_a_trabajador():
+        seleccion_combobox_texto = combobox_empleados.get()
+        if not seleccion_combobox_texto or seleccion_combobox_texto == "No hay empleados registrados aún":
+            messagebox.showwarning("Error", "Por favor, seleccione un empleado para asignarle suplente.")
+            return
+
+        trabajador_a_inhabilitar = None
+        for t in lista_trabajadores_registrados:
+            if t.obtener_texto_para_lista() == seleccion_combobox_texto:
+                trabajador_a_inhabilitar = t
+                break
+
+        if trabajador_a_inhabilitar:
+            if trabajador_a_inhabilitar.habilitado:
+                confirmar = messagebox.askyesno("Asignar Suplente",f"¿Desea asignar un suplente a '{trabajador_a_inhabilitar.nombre}'? Esto lo inhabilitará para asistencia y vacaciones.")
+                if confirmar:
+                    trabajador_a_inhabilitar.habilitado = False
+                    historial_actividades.append(
+                        f"Suplente asignado a '{trabajador_a_inhabilitar.nombre}'. Empleado INHABILITADO.")
+                    messagebox.showinfo("Suplente Asignado", f"'{trabajador_a_inhabilitar.nombre}' ha sido inhabilitado (suplente asignado).")
+                    actualizar_lista_empleados_gestion()  
+                else:
+                    messagebox.showinfo("Cancelado", "Asignación de suplente cancelada.")
+            else:
+                messagebox.showwarning("Ya Inhabilitado", f"'{trabajador_a_inhabilitar.nombre}' ya está inhabilitado.")
+        else:
+            messagebox.showerror("Error", "No se pudo encontrar el empleado seleccionado.")
+
+    frame_acciones = tk.Frame(ventana_gestion_empleados, bg=COLOR_FONDO_CLARO)
+    frame_acciones.pack(pady=20)
+
+    tk.Button(frame_acciones, text="Eliminar Empleado", command=eliminar_trabajador,font=FUENTE_BOTON_NORMAL, bg="red", fg=COLOR_TEXTO_BOTON,width=25, height=1, relief="raised", bd=3).pack(side=tk.LEFT, padx=10)
+
+    tk.Button(frame_acciones, text="Asignar Suplente (Inhabilitar)", command=asignar_suplente_a_trabajador, font=FUENTE_BOTON_NORMAL, bg="orange", fg=COLOR_TEXTO_BOTON, width=25, height=1, relief="raised", bd=3).pack(side=tk.RIGHT, padx=10)
+
+    def volver_desde_gestion():
+        ventana_gestion_empleados.destroy()
+        ventana_menu.deiconify()
+
+    tk.Button(ventana_gestion_empleados, text="Volver al Menú Principal", command=volver_desde_gestion, font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_VOLVER, fg=COLOR_TEXTO_BOTON, width=20, height=1, relief="raised", bd=3).pack(pady=25)
+
+    ventana_gestion_empleados.protocol("WM_DELETE_WINDOW", volver_desde_gestion)
+
+
+
+def abrir_ventana_habilitar_trabajador():
+    ventana_menu.withdraw()  
+
+    ventana_habilitar_empleado = tk.Toplevel(ventana_menu)
+    ventana_habilitar_empleado.title("Habilitar Empleado - Hospital XYZ")
+    ventana_habilitar_empleado.state('zoomed')
+    ventana_habilitar_empleado.configure(bg=COLOR_FONDO_CLARO)
+
+    tk.Label(ventana_habilitar_empleado, text="Habilitar Empleado (Sin Suplente)",
+             font=FUENTE_TITULO, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=20)
+
+    tk.Label(ventana_habilitar_empleado, text="Seleccione un Empleado Inhabilitado:",
+             font=FUENTE_SUBTITULO, bg=COLOR_FONDO_CLARO, fg=COLOR_TEXTO_GENERAL).pack(pady=10)
+
+    def actualizar_lista_empleados_inhabilitados():
+        nombres_inhabilitados = [t.obtener_texto_para_lista() for t in lista_trabajadores_registrados if
+                                 not t.habilitado]
+        if not nombres_inhabilitados:
+            nombres_inhabilitados = ["No hay empleados inhabilitados"]
+            combobox_inhabilitados.config(state="disabled")
+        else:
+            combobox_inhabilitados.config(state="readonly")
+        combobox_inhabilitados['values'] = nombres_inhabilitados
+        if nombres_inhabilitados and nombres_inhabilitados[0] != "No hay empleados inhabilitados":
+            combobox_inhabilitados.current(0)
+        else:
+            combobox_inhabilitados.set(nombres_inhabilitados[0])
+
+    combobox_inhabilitados = ttk.Combobox(ventana_habilitar_empleado, values=[],
+                                          state="readonly", font=FUENTE_ETIQUETA, width=40)
+    combobox_inhabilitados.pack(pady=10, ipadx=5, ipady=5)
+    actualizar_lista_empleados_inhabilitados()
+
+    def habilitar_trabajador_seleccionado():
+        seleccion_combobox_texto = combobox_inhabilitados.get()
+        if not seleccion_combobox_texto or seleccion_combobox_texto == "No hay empleados inhabilitados":
+            messagebox.showwarning("Error", "Por favor, seleccione un empleado para habilitar.")
+            return
+
+        trabajador_a_habilitar = None
+        for t in lista_trabajadores_registrados:
+            if t.obtener_texto_para_lista() == seleccion_combobox_texto:
+                trabajador_a_habilitar = t
+                break
+
+        if trabajador_a_habilitar:
+            if not trabajador_a_habilitar.habilitado: 
+                confirmar = messagebox.askyesno("Confirmar Habilitación",
+                                                f"¿Está seguro de habilitar a '{trabajador_a_habilitar.nombre}' (quitar suplente)?")
+                if confirmar:
+                    trabajador_a_habilitar.habilitado = True
+                    historial_actividades.append(
+                        f"Empleado '{trabajador_a_habilitar.nombre}' HABILITADO. Suplente retirado.")
+                    messagebox.showinfo("Habilitado", f"'{trabajador_a_habilitar.nombre}' ha sido habilitado de nuevo.")
+                    actualizar_lista_empleados_inhabilitados() 
+                else:
+                    messagebox.showinfo("Cancelado", "Habilitación cancelada.")
+            else:
+                messagebox.showwarning("Ya Habilitado", f"'{trabajador_a_habilitar.nombre}' ya está habilitado.")
+        else:
+            messagebox.showerror("Error", "No se pudo encontrar el empleado seleccionado.")
+
+    tk.Button(ventana_habilitar_empleado, text="Habilitar Empleado", command=habilitar_trabajador_seleccionado,
+              font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_ACCION, fg=COLOR_TEXTO_BOTON,
+              width=25, height=1, relief="raised", bd=4).pack(pady=25)
+
+    def volver_desde_habilitar():
+        ventana_habilitar_empleado.destroy()
+        ventana_menu.deiconify()
+
+    tk.Button(ventana_habilitar_empleado, text="Volver al Menú Principal", command=volver_desde_habilitar,
+              font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_VOLVER, fg=COLOR_TEXTO_BOTON,
+              width=20, height=1, relief="raised", bd=3).pack(pady=15)
+
+    ventana_habilitar_empleado.protocol("WM_DELETE_WINDOW", volver_desde_habilitar)
+
+
 ventana_menu = tk.Tk()
 ventana_menu.title("Sistema de Gestión de Personal Hospitalario")
-ventana_menu.state('zoomed')
+ventana_menu.state('zoomed')  
 ventana_menu.configure(bg=COLOR_FONDO_OSCURO)
 
 tk.Label(ventana_menu, text="Bienvenido al Sistema de Gestión del Hospital",font=FUENTE_TITULO, fg=COLOR_TEXTO_GENERAL, bg=COLOR_FONDO_OSCURO).pack(pady=40)
 
-boton_opc1re = tk.Button(ventana_menu, text="Registrar Nuevo Empleado", command=agregar_trabajador_ven,font=FUENTE_BOTON_GRANDE, bg=COLOR_BOTON_PRINCIPAL, fg=COLOR_TEXTO_BOTON,width=35, height=2, relief="raised", bd=5)
+boton_opc1re = tk.Button(ventana_menu, text="Registrar Nuevo Empleado", command=agregar_trabajador_ven, font=FUENTE_BOTON_GRANDE, bg=COLOR_BOTON_PRINCIPAL, fg=COLOR_TEXTO_BOTON,width=35, height=2, relief="raised", bd=5)
 boton_opc1re.pack(pady=15)
 
-boton_asis = tk.Button(ventana_menu, text="Registrar Asistencia de Personal", command=pasar_asistencia_sencilla,font=FUENTE_BOTON_GRANDE, bg=COLOR_BOTON_PRINCIPAL, fg=COLOR_TEXTO_BOTON,width=35, height=2, relief="raised", bd=5)
+boton_asis = tk.Button(ventana_menu, text="Registrar Asistencia de Personal", command=pasar_asistencia_sencilla,font=FUENTE_BOTON_GRANDE, bg=COLOR_BOTON_PRINCIPAL, fg=COLOR_TEXTO_BOTON, width=35, height=2, relief="raised", bd=5)
 boton_asis.pack(pady=15)
 
 manejador_vacaciones_instancia = ManejadorVacaciones(ventana_menu)
-btn_vacaciones = tk.Button(ventana_menu, text="Gestionar Vacaciones del Personal", command=manejador_vacaciones_instancia.abrir_ventana_vacaciones, font=FUENTE_BOTON_GRANDE, bg=COLOR_BOTON_PRINCIPAL, fg=COLOR_TEXTO_BOTON,width=35, height=2, relief="raised", bd=5)
+btn_vacaciones = tk.Button(ventana_menu, text="Gestionar Vacaciones del Personal",command=manejador_vacaciones_instancia.abrir_ventana_vacaciones,font=FUENTE_BOTON_GRANDE, bg=COLOR_BOTON_PRINCIPAL, fg=COLOR_TEXTO_BOTON, width=35, height=2, relief="raised", bd=5)
 btn_vacaciones.pack(pady=15)
 
-btn_ver_historial = tk.Button(ventana_menu, text="Ver Historial de Actividades", command=mostrar_historial_simple,font=FUENTE_BOTON_GRANDE, bg=COLOR_BOTON_PRINCIPAL, fg=COLOR_TEXTO_BOTON, width=35, height=2, relief="raised", bd=5)
+
+btn_gestionar_empleados = tk.Button(ventana_menu, text="Eliminar / Asignar Suplente",command=abrir_ventana_eliminar_suplente, font=FUENTE_BOTON_GRANDE, bg="red", fg=COLOR_TEXTO_BOTON,
+                                    width=35, height=2, relief="raised", bd=5)
+btn_gestionar_empleados.pack(pady=15)
+
+btn_habilitar_empleado = tk.Button(ventana_menu, text="Habilitar Empleado", command=abrir_ventana_habilitar_trabajador,font=FUENTE_BOTON_GRANDE, bg="green", fg=COLOR_TEXTO_BOTON, width=35, height=2, relief="raised", bd=5)
+btn_habilitar_empleado.pack(pady=15)
+
+btn_ver_historial = tk.Button(ventana_menu, text="Ver Historial de Actividades", command=mostrar_historial_simple,font=FUENTE_BOTON_GRANDE, bg=COLOR_BOTON_PRINCIPAL, fg=COLOR_TEXTO_BOTON,width=35, height=2, relief="raised", bd=5)
 btn_ver_historial.pack(pady=15)
 
-
 ventana_menu.mainloop()
-
-
