@@ -28,7 +28,7 @@ COLOR_BOTON_VOLVER = "#696969"
 COLOR_TEXTO_GENERAL = "#333333"
 COLOR_BORDE_ENTRADA = "#B0C4DE"
 
-FUENTE_TITULO = ("Arial", 28, "bold")
+FUENTE_TITULO = ("Arial", 20, "bold")
 FUENTE_SUBTITULO = ("Helvetica", 16, "bold")
 FUENTE_ETIQUETA = ("Verdana", 12)
 FUENTE_ENTRADA = ("Consolas", 14)
@@ -45,7 +45,7 @@ class Trabajador:
         self.nss = nss
         self.puesto = puesto
         self.horario = horario
-        self.habilitado = True  # ¡NUEVO!: Por defecto, un trabajador está habilitado
+        self.habilitado = True
         self.vacaciones_solicitadas_individual = {"Enero-Febrero": 0,"Marzo-Abril": 0,"Junio-Julio": 0,"Nov-Dic": 0,}
 
     def obtener_texto_para_lista(self):
@@ -115,7 +115,7 @@ class ManejadorVacaciones:
     def _actualizar_estado_botones_vacaciones(self):
         indice_seleccionado = self.combobox_trabajadores.current()
         trabajador_seleccionado = None
-        global nombres_para_combobox_vacaciones  
+        global nombres_para_combobox_vacaciones
 
         texto_seleccionado = self.combobox_trabajadores.get()
         if texto_seleccionado and texto_seleccionado != "No hay empleados registrados aún":
@@ -149,7 +149,7 @@ class ManejadorVacaciones:
         seleccion_combobox_texto = self.combobox_trabajadores.get()
 
         if not seleccion_combobox_texto or seleccion_combobox_texto == "No hay empleados registrados aún" or \
-                seleccion_combobox_texto == "Seleccione un empleado...": 
+                seleccion_combobox_texto == "Seleccione un empleado...":
             messagebox.showwarning("Error", "Por favor, seleccione un empleado primero.")
             return
 
@@ -186,7 +186,7 @@ class ManejadorVacaciones:
 
     def abrir_ventana_vacaciones(self):
         global boton_vacu, boton_vacd, boton_vact, boton_vacc
-        global nombres_para_combobox_vacaciones  
+        global nombres_para_combobox_vacaciones
 
         self.ventana_principal.withdraw()
 
@@ -209,7 +209,7 @@ class ManejadorVacaciones:
         if nombres_para_combobox_vacaciones and nombres_para_combobox_vacaciones[
             0] != "No hay empleados registrados aún":
             self.combobox_trabajadores.current(0)
-        else:  
+        else:
             self.combobox_trabajadores.set("No hay empleados registrados aún")
             self.combobox_trabajadores.config(state="disabled")
 
@@ -230,7 +230,7 @@ class ManejadorVacaciones:
         boton_vacc = tk.Button(self.ventana_vacaciones, text="Noviembre - Diciembre",command=lambda: self._accion_combinada_vacacion("Nov-Dic", self.vacaciones_cuatro),font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_ACCION, fg=COLOR_TEXTO_BOTON, width=25,height=1, relief="raised", bd=3)
         boton_vacc.pack(pady=7)
 
-        self._actualizar_estado_botones_vacaciones() 
+        self._actualizar_estado_botones_vacaciones()
 
         def volver_a_principal():
             self.ventana_vacaciones.destroy()
@@ -255,7 +255,7 @@ def actualizar_combobox_para_turno(turno_seleccionado):
         global_combobox_asistencia.config(state="readonly")
         global_label_trabajadores_listado.config(text=f"Empleados en Turno {turno_seleccionado}:")
     else:
-        global_combobox_asistencia.set("No hay empleados habilitados en este turno")  
+        global_combobox_asistencia.set("No hay empleados habilitados en este turno")
         global_combobox_asistencia.config(state="disabled")
         global_label_trabajadores_listado.config(text=f"No hay empleados habilitados en Turno {turno_seleccionado}")
 
@@ -390,10 +390,10 @@ def agregar_trabajador_ven():
     ventana_menudos.state('zoomed')
     ventana_menudos.configure(bg=COLOR_FONDO_CLARO)
 
-    tk.Label(ventana_menudos, text="Registro de Nuevo Empleado", font=FUENTE_TITULO, bg=COLOR_FONDO_CLARO,fg=COLOR_TEXTO_GENERAL).pack(pady=20)
+    tk.Label(ventana_menudos, text="Registro de Nuevo Empleado", font=FUENTE_TITULO, bg=COLOR_FONDO_CLARO,fg=COLOR_TEXTO_GENERAL).pack(pady=5)
 
     mensaje_registro_label = tk.Label(ventana_menudos, text="", fg=COLOR_BOTON_ACCION, bg=COLOR_FONDO_CLARO,font=FUENTE_ETIQUETA)
-    mensaje_registro_label.pack(pady=10)
+    mensaje_registro_label.pack(pady=5)
 
     def registrar_trabajador():
         nombre = entry_nombre.get()
@@ -477,15 +477,18 @@ def agregar_trabajador_ven():
     combo_horario.set("Seleccione Horario")
     combo_horario.pack(pady=5, ipadx=8, ipady=5)
 
-    btn_registrar = tk.Button(ventana_menudos, text="Registrar Empleado", command=registrar_trabajador, font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_ACCION, fg=COLOR_TEXTO_BOTON, width=25, height=1,relief="raised", bd=4)
-    btn_registrar.pack(pady=30)
+    frame_botones_registro = tk.Frame(ventana_menudos, bg=COLOR_FONDO_CLARO)
+    frame_botones_registro.pack(pady=30)
+
+    btn_registrar = tk.Button(frame_botones_registro, text="Registrar Empleado", command=registrar_trabajador, font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_ACCION, fg=COLOR_TEXTO_BOTON, width=25, height=1,relief="raised", bd=4)
+    btn_registrar.pack(side=tk.LEFT, padx=10)
 
     def volver_menudos():
         ventana_menudos.destroy()
         ventana_menu.deiconify()
 
-    btn_volver = tk.Button(ventana_menudos, text="Volver al Menú Principal", command=volver_menudos,font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_VOLVER, fg=COLOR_TEXTO_BOTON, width=20, height=1, relief="raised", bd=3)
-    btn_volver.pack(pady=15)
+    btn_volver = tk.Button(frame_botones_registro, text="Volver al Menú", command=volver_menudos,font=FUENTE_BOTON_NORMAL, bg=COLOR_BOTON_VOLVER, fg=COLOR_TEXTO_BOTON, width=20, height=1, relief="raised", bd=3)
+    btn_volver.pack(side=tk.LEFT, padx=10)
 
     ventana_menudos.protocol("WM_DELETE_WINDOW", volver_menudos)
 
@@ -524,7 +527,7 @@ def mostrar_historial_simple():
 
 
 def abrir_ventana_eliminar_suplente():
-    ventana_menu.withdraw()  
+    ventana_menu.withdraw()
 
     ventana_gestion_empleados = tk.Toplevel(ventana_menu)
     ventana_gestion_empleados.title("Gestión de Empleados - Hospital XYZ")
@@ -550,7 +553,7 @@ def abrir_ventana_eliminar_suplente():
 
     combobox_empleados = ttk.Combobox(ventana_gestion_empleados, values=[],state="readonly", font=FUENTE_ETIQUETA, width=40)
     combobox_empleados.pack(pady=10, ipadx=5, ipady=5)
-    actualizar_lista_empleados_gestion()  
+    actualizar_lista_empleados_gestion()
 
     def eliminar_trabajador():
         seleccion_combobox_texto = combobox_empleados.get()
@@ -570,7 +573,7 @@ def abrir_ventana_eliminar_suplente():
                 lista_trabajadores_registrados.remove(trabajador_a_eliminar)
                 historial_actividades.append(f"Empleado '{trabajador_a_eliminar.nombre}' ELIMINADO del sistema.")
                 messagebox.showinfo("Eliminado", f"'{trabajador_a_eliminar.nombre}' ha sido eliminado correctamente.")
-                actualizar_lista_empleados_gestion()  
+                actualizar_lista_empleados_gestion()
             else:
                 messagebox.showinfo("Cancelado", "La eliminación ha sido cancelada.")
         else:
@@ -596,7 +599,7 @@ def abrir_ventana_eliminar_suplente():
                     historial_actividades.append(
                         f"Suplente asignado a '{trabajador_a_inhabilitar.nombre}'. Empleado INHABILITADO.")
                     messagebox.showinfo("Suplente Asignado", f"'{trabajador_a_inhabilitar.nombre}' ha sido inhabilitado (suplente asignado).")
-                    actualizar_lista_empleados_gestion()  
+                    actualizar_lista_empleados_gestion()
                 else:
                     messagebox.showinfo("Cancelado", "Asignación de suplente cancelada.")
             else:
@@ -622,7 +625,7 @@ def abrir_ventana_eliminar_suplente():
 
 
 def abrir_ventana_habilitar_trabajador():
-    ventana_menu.withdraw()  
+    ventana_menu.withdraw()
 
     ventana_habilitar_empleado = tk.Toplevel(ventana_menu)
     ventana_habilitar_empleado.title("Habilitar Empleado - Hospital XYZ")
@@ -667,7 +670,7 @@ def abrir_ventana_habilitar_trabajador():
                 break
 
         if trabajador_a_habilitar:
-            if not trabajador_a_habilitar.habilitado: 
+            if not trabajador_a_habilitar.habilitado:
                 confirmar = messagebox.askyesno("Confirmar Habilitación",
                                                 f"¿Está seguro de habilitar a '{trabajador_a_habilitar.nombre}' (quitar suplente)?")
                 if confirmar:
@@ -675,7 +678,7 @@ def abrir_ventana_habilitar_trabajador():
                     historial_actividades.append(
                         f"Empleado '{trabajador_a_habilitar.nombre}' HABILITADO. Suplente retirado.")
                     messagebox.showinfo("Habilitado", f"'{trabajador_a_habilitar.nombre}' ha sido habilitado de nuevo.")
-                    actualizar_lista_empleados_inhabilitados() 
+                    actualizar_lista_empleados_inhabilitados()
                 else:
                     messagebox.showinfo("Cancelado", "Habilitación cancelada.")
             else:
@@ -700,7 +703,7 @@ def abrir_ventana_habilitar_trabajador():
 
 ventana_menu = tk.Tk()
 ventana_menu.title("Sistema de Gestión de Personal Hospitalario")
-ventana_menu.state('zoomed')  
+ventana_menu.state('zoomed')
 ventana_menu.configure(bg=COLOR_FONDO_OSCURO)
 
 tk.Label(ventana_menu, text="Bienvenido al Sistema de Gestión del Hospital",font=FUENTE_TITULO, fg=COLOR_TEXTO_GENERAL, bg=COLOR_FONDO_OSCURO).pack(pady=40)
